@@ -12,6 +12,10 @@
     "isolatedModules": true
   },
   "files": [],
-  "references": [{ "path": "packages/pi-panels" }, { "path": "packages/pi-mouse" }],
+  "references": [
+    { "path": "packages/pi-panels" },
+    { "path": "packages/pi-mouse" },
+    { "path": "packages/pi-linear" }
+  ],
   "exclude": ["node_modules", "dist"]
 }

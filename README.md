@@ -27,3 +27,13 @@ An ASCII mouse that lives above your editor. It follows your cursor as you type,
 ```bash
 pi install npm:@alasano/pi-mouse
 ```
+
+### [@alasano/pi-linear](packages/pi-linear)
+
+Linear integration with 55+ tools for issues, projects, documents, initiatives, comments, relations, and more. Multi-workspace auth and per-tool settings overlay.
+
+![pi-linear](packages/pi-linear/assets/screenshot.png)
+
+```bash
+pi install npm:@alasano/pi-linear
+```
