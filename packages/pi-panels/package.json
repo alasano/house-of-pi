@@ -1,0 +1,35 @@
+{
+  "name": "@alasano/pi-panels",
+  "version": "0.0.1",
+  "description": "Responsive status panels for pi - git info, LLM context usage, and Spotify now-playing below the editor",
+  "keywords": [
+    "pi-package"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alasano/house-of-pi",
+    "directory": "packages/pi-panels"
+  },
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ],
+    "image": "https://raw.githubusercontent.com/alasano/house-of-pi/master/packages/pi-panels/assets/screenshot.png"
+  },
+  "files": [
+    "extensions",
+    "assets",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*",
+    "@mariozechner/pi-ai": "*",
+    "@sinclair/typebox": "*"
+  }
+}

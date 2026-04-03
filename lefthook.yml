@@ -1,0 +1,23 @@
+glob_matcher: doublestar
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: prettier
+      glob: '**/*.{ts,js,json,md,yaml}'
+      run: pnpm prettier --write {staged_files}
+      stage_fixed: true
+
+    - name: oxlint
+      glob: '**/*.{ts,js}'
+      run: pnpm oxlint {staged_files}
+
+pre-push:
+  jobs:
+    - name: typecheck
+      run: pnpm typecheck
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit {1}
