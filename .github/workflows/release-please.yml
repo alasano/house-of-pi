@@ -36,6 +36,8 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
+      - run: npm install -g npm@latest
+
       - name: Publish released packages
         run: |
           paths='${{ needs.release-please.outputs.paths_released }}'
