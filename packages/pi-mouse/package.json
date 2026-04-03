@@ -1,6 +1,6 @@
 {
   "name": "@alasano/pi-mouse",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "ASCII mouse that follows your cursor above the editor in pi",
   "keywords": [
     "pi-package"
