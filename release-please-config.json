@@ -61,6 +61,7 @@
     }
   ],
   "packages": {
-    "packages/pi-panels": {}
+    "packages/pi-panels": {},
+    "packages/pi-mouse": {}
   }
 }

@@ -1,0 +1,33 @@
+{
+  "name": "@alasano/pi-mouse",
+  "version": "0.0.1",
+  "description": "ASCII mouse that follows your cursor above the editor in pi",
+  "keywords": [
+    "pi-package"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alasano/house-of-pi",
+    "directory": "packages/pi-mouse"
+  },
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ],
+    "image": "https://raw.githubusercontent.com/alasano/house-of-pi/master/packages/pi-mouse/assets/pi-mouse.gif"
+  },
+  "files": [
+    "extensions",
+    "assets",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*"
+  }
+}

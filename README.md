@@ -17,3 +17,13 @@ Responsive status panels rendered below the editor - git info, LLM context usage
 ```bash
 pi install npm:@alasano/pi-panels
 ```
+
+### [@alasano/pi-mouse](packages/pi-mouse)
+
+An ASCII mouse that lives above your editor. It follows your cursor as you type, scurrying left and right with an animated tail.
+
+![pi-mouse](packages/pi-mouse/assets/pi-mouse.gif)
+
+```bash
+pi install npm:@alasano/pi-mouse
+```

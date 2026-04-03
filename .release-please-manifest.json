@@ -1,3 +1,4 @@
 {
-  "packages/pi-panels": "0.1.0"
+  "packages/pi-panels": "0.1.0",
+  "packages/pi-mouse": "0.0.1"
 }
