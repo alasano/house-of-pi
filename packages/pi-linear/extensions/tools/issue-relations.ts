@@ -1,6 +1,6 @@
 import { defineTool } from '@mariozechner/pi-coding-agent';
 import { Type } from '@sinclair/typebox';
-import { withLinearAuth, linearGraphQL } from '../client';
+import { withLinearAuth, linearGraphQL, resolveIssueId } from '../client';
 import { PaginationParams } from '../params';
 import { ISSUE_RELATION_SELECTION } from '../selections';
 import type { JsonObject } from '../types';
@@ -81,8 +81,8 @@ export function issueRelationTools() {
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const input = {
-            issueId: params.issueId,
-            relatedIssueId: params.relatedIssueId,
+            issueId: await resolveIssueId(apiKey, params.issueId, signal),
+            relatedIssueId: await resolveIssueId(apiKey, params.relatedIssueId, signal),
             type: params.type,
           };
 
@@ -129,10 +129,17 @@ export function issueRelationTools() {
       }),
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
+          const [resolvedIssueId, resolvedRelatedIssueId] = await Promise.all([
+            params.issueId ? resolveIssueId(apiKey, params.issueId, signal) : undefined,
+            params.relatedIssueId
+              ? resolveIssueId(apiKey, params.relatedIssueId, signal)
+              : undefined,
+          ]);
+
           const input = compactObject({
             type: params.type,
-            issueId: params.issueId,
-            relatedIssueId: params.relatedIssueId,
+            issueId: resolvedIssueId,
+            relatedIssueId: resolvedRelatedIssueId,
           });
 
           if (Object.keys(input).length === 0) {

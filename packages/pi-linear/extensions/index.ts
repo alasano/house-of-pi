@@ -210,5 +210,5 @@ export default async function linearExtension(pi: ExtensionAPI) {
     pi.registerTool(tool);
   }
 
-  registerLinearSettings(pi);
+  await registerLinearSettings(pi);
 }

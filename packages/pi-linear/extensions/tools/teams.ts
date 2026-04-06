@@ -50,9 +50,7 @@ export function teamTools() {
                 orderBy: $orderBy
               ) {
                 nodes {
-                  id
-                  key
-                  name
+                  ${TEAM_SELECTION}
                   states(first: 50) {
                     nodes {
                       id

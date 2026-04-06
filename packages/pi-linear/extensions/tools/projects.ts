@@ -105,7 +105,7 @@ export function projectTools() {
       name: 'linear_save_project',
       label: 'Linear Save Project',
       description:
-        'Create or update a project. If projectId/id is provided, uses projectUpdate; otherwise uses projectCreate.',
+        'Create or update a project. Pass projectId to update an existing project; omit it to create. The id param is only for pre-setting a UUID on create.',
       parameters: Type.Object({
         projectId: Type.Optional(Type.String({ description: 'Project id for update mode.' })),
         id: Type.Optional(Type.String({ description: 'ProjectCreateInput.id' })),
