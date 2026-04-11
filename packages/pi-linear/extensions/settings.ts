@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { promises as fs } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { ExtensionAPI, ExtensionContext } from '@mariozechner/pi-coding-agent';
 import { getAgentDir, getSettingsListTheme } from '@mariozechner/pi-coding-agent';
@@ -172,12 +172,9 @@ function createDefaultSettings(): ToolSettings {
   return { disabledTools: [] };
 }
 
-function loadSettings(): ToolSettings {
-  if (!existsSync(SETTINGS_PATH)) {
-    return createDefaultSettings();
-  }
+async function loadSettings(): Promise<ToolSettings> {
   try {
-    const raw = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'));
+    const raw = JSON.parse(await fs.readFile(SETTINGS_PATH, 'utf8'));
     if (!raw || typeof raw !== 'object' || !Array.isArray(raw.disabledTools)) {
       return createDefaultSettings();
     }
@@ -189,10 +186,10 @@ function loadSettings(): ToolSettings {
   }
 }
 
-function saveSettings(settings: ToolSettings): boolean {
+async function saveSettings(settings: ToolSettings): Promise<boolean> {
   try {
-    mkdirSync(dirname(SETTINGS_PATH), { recursive: true });
-    writeFileSync(SETTINGS_PATH, `${JSON.stringify(settings, null, 2)}\n`, 'utf8');
+    await fs.mkdir(dirname(SETTINGS_PATH), { recursive: true });
+    await fs.writeFile(SETTINGS_PATH, `${JSON.stringify(settings, null, 2)}\n`, 'utf8');
     return true;
   } catch {
     return false;
@@ -320,7 +317,7 @@ async function showToolSettingsOverlay(
         items,
         maxVisibleItems,
         settingsTheme,
-        (id, newValue) => {
+        async (id, newValue) => {
           const nextEnabled = newValue === '[x]';
 
           if (id.startsWith('category:')) {
@@ -354,7 +351,7 @@ async function showToolSettingsOverlay(
             }
           }
 
-          saveSettings(settings);
+          await saveSettings(settings);
           applySettings(pi, settings);
         },
         () => done(undefined),
@@ -392,24 +389,24 @@ async function showToolSettingsOverlay(
   );
 }
 
-export function registerLinearSettings(pi: ExtensionAPI): void {
-  let settings = loadSettings();
+export async function registerLinearSettings(pi: ExtensionAPI): Promise<void> {
+  let settings = await loadSettings();
 
   pi.registerCommand('linear-settings', {
     description: 'Open Linear tool settings',
     handler: async (_args, ctx) => {
-      settings = loadSettings();
+      settings = await loadSettings();
       await showToolSettingsOverlay(pi, ctx, settings);
     },
   });
 
   pi.on('session_start', async (_event, _ctx) => {
-    settings = loadSettings();
+    settings = await loadSettings();
     applySettings(pi, settings);
   });
 
   pi.on('session_before_switch', async (_event, _ctx) => {
-    settings = loadSettings();
+    settings = await loadSettings();
     applySettings(pi, settings);
   });
 }
