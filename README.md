@@ -37,3 +37,13 @@ Linear integration with 55+ tools for issues, projects, documents, initiatives, 
 ```bash
 pi install npm:@alasano/pi-linear
 ```
+
+### [@alasano/pi-extra-context](packages/pi-extra-context)
+
+Load extra configured project, ancestor, global, or absolute context files into pi sessions.
+
+![pi-extra-context](packages/pi-extra-context/assets/screenshot.png)
+
+```bash
+pi install npm:@alasano/pi-extra-context
+```
