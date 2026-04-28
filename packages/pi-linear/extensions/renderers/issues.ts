@@ -1,11 +1,27 @@
 import {
-  keyHint,
   type AgentToolResult,
   type Theme,
   type ToolRenderResultOptions,
 } from '@mariozechner/pi-coding-agent';
-import { Text, truncateToWidth, visibleWidth } from '@mariozechner/pi-tui';
+import { Text } from '@mariozechner/pi-tui';
 import type { LinearIssue } from '../types';
+import {
+  accentStyle,
+  asString,
+  cleanOneLine,
+  dimStyle,
+  expandedJson,
+  jsonHint,
+  LinearListResultComponent,
+  mutedStyle,
+  renderLinearToolCall,
+  renderResponsiveTable,
+  toolOutputStyle,
+  truncate,
+  truncateLine,
+  type TableColumn,
+  type ToolArgs,
+} from './common';
 
 type IssueLike = LinearIssue & {
   archivedAt?: string | null;
@@ -24,59 +40,13 @@ type IssueResultDetails = {
   success?: boolean;
 };
 
-type IssueToolArgs = Record<string, unknown>;
-
-type ColumnSpec = {
-  id: string;
-  label: string;
-  width: number;
-  value: (issue: IssueLike) => string;
-  style: (theme: Theme, value: string) => (text: string) => string;
-};
-
 const ISSUE_LIST_PREVIEW_LIMIT = 20;
 const TITLE_LIMIT = 90;
 const DESCRIPTION_LIMIT = 180;
 const TABLE_TITLE_MIN_WIDTH = 24;
-const TABLE_SEPARATOR = '  ';
-
-function asString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
-}
-
-function cleanOneLine(value: string): string {
-  return value.replace(/\s+/g, ' ').trim();
-}
-
-function truncate(value: string, maxLength: number): string {
-  if (value.length <= maxLength) return value;
-  return `${value.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
-}
 
 function issueDetails(result: AgentToolResult<any>): IssueResultDetails {
   return (result.details ?? {}) as IssueResultDetails;
-}
-
-function textContent(result: AgentToolResult<any>): string {
-  const textBlock = result.content.find((block) => block.type === 'text');
-  if (textBlock?.type === 'text' && textBlock.text) return textBlock.text;
-  return JSON.stringify(result.details ?? null, null, 2);
-}
-
-function expandedJson(result: AgentToolResult<any>, theme: Theme): Text {
-  const text = `\n${theme.fg('muted', 'Full JSON response')}\n${textContent(result)}\n\n${keyHint(
-    'app.tools.expand',
-    'show summary',
-  )}`;
-  return new Text(text, 0, 0);
-}
-
-function jsonHint(): string {
-  return `(${keyHint('app.tools.expand', 'show full JSON')})`;
-}
-
-function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
-  return `${count} ${count === 1 ? singular : pluralForm}`;
 }
 
 function issueId(issue: IssueLike): string {
@@ -139,7 +109,7 @@ function formatIssueListLine(issue: IssueLike, theme: Theme, width: number): str
   const metadata = metadataParts(issue);
   const suffix = metadata.length ? theme.fg('dim', ` · ${metadata.join(' · ')}`) : '';
 
-  return truncateToWidth(
+  return truncateLine(
     `  ${theme.fg('accent', id)} ${theme.fg('toolOutput', title)}${suffix}`,
     width,
   );
@@ -160,32 +130,20 @@ function priorityStyle(theme: Theme, value: string): (text: string) => string {
   if (normalized === 'urgent') return (text) => theme.fg('error', text);
   if (normalized === 'high') return (text) => theme.fg('warning', text);
   if (normalized === 'low' || normalized === 'no priority' || value === '—') {
-    return (text) => theme.fg('dim', text);
+    return dimStyle(theme);
   }
-  return (text) => theme.fg('muted', text);
+  return mutedStyle(theme);
 }
 
 function statusStyle(theme: Theme, value: string): (text: string) => string {
   const normalized = value.toLowerCase();
   if (normalized === 'done' || normalized === 'completed')
     return (text) => theme.fg('success', text);
-  if (normalized === 'backlog' || value === '—') return (text) => theme.fg('dim', text);
-  return (text) => theme.fg('muted', text);
+  if (normalized === 'backlog' || value === '—') return dimStyle(theme);
+  return mutedStyle(theme);
 }
 
-function plainStyle(theme: Theme): (text: string) => string {
-  return (text) => theme.fg('muted', text);
-}
-
-function dimStyle(theme: Theme): (text: string) => string {
-  return (text) => theme.fg('dim', text);
-}
-
-function accentStyle(theme: Theme): (text: string) => string {
-  return (text) => theme.fg('accent', text);
-}
-
-const ISSUE_TABLE_COLUMNS: ColumnSpec[] = [
+const ISSUE_TABLE_COLUMNS: TableColumn<IssueLike>[] = [
   {
     id: 'id',
     label: 'ID',
@@ -212,7 +170,7 @@ const ISSUE_TABLE_COLUMNS: ColumnSpec[] = [
     label: 'Assignee',
     width: 16,
     value: (issue) => asString(issue.assignee?.name) ?? '—',
-    style: (theme) => plainStyle(theme),
+    style: (theme) => mutedStyle(theme),
   },
   {
     id: 'labels',
@@ -223,139 +181,22 @@ const ISSUE_TABLE_COLUMNS: ColumnSpec[] = [
   },
 ];
 
-function formatCell(rawValue: string, width: number, style: (text: string) => string): string {
-  const cleanValue = cleanOneLine(rawValue || '—');
-  const truncated = truncateToWidth(cleanValue, width);
-  const padding = ' '.repeat(Math.max(0, width - visibleWidth(truncated)));
-  return `${style(truncated)}${padding}`;
-}
-
-function fitTableLayout(width: number): { columns: ColumnSpec[]; titleWidth: number } | undefined {
-  if (width < 28) return undefined;
-
-  const dropOrder = ['labels', 'assignee', 'priority', 'state'];
-  let columns = [...ISSUE_TABLE_COLUMNS];
-
-  const titleWidthFor = (candidateColumns: ColumnSpec[]) => {
-    const separatorWidth = TABLE_SEPARATOR.length * candidateColumns.length;
-    const fixedWidth = candidateColumns.reduce((sum, column) => sum + column.width, 0);
-    return width - fixedWidth - separatorWidth;
-  };
-
-  let titleWidth = titleWidthFor(columns);
-  for (const columnToDrop of dropOrder) {
-    if (titleWidth >= TABLE_TITLE_MIN_WIDTH) break;
-    columns = columns.filter((column) => column.id !== columnToDrop);
-    titleWidth = titleWidthFor(columns);
-  }
-
-  if (titleWidth < 10) return undefined;
-  return { columns, titleWidth };
-}
-
-function tableLine(cells: string[], width: number): string {
-  return truncateToWidth(cells.join(TABLE_SEPARATOR), width);
-}
-
 function renderIssueTable(issues: IssueLike[], theme: Theme, width: number): string[] {
-  const layout = fitTableLayout(width);
-  if (!layout) {
-    return issues.map((issue) => formatIssueListLine(issue, theme, width));
-  }
-
-  const headerCells = [
-    ...layout.columns.map((column) =>
-      formatCell(column.label, column.width, (text) => theme.fg('dim', text)),
-    ),
-    formatCell('Title', layout.titleWidth, (text) => theme.fg('dim', text)),
-  ];
-
-  const lines = [tableLine(headerCells, width)];
-  for (const issue of issues) {
-    const cells = [
-      ...layout.columns.map((column) =>
-        formatCell(column.value(issue), column.width, column.style(theme, column.value(issue))),
-      ),
-      formatCell(issueTitle(issue), layout.titleWidth, (text) => theme.fg('toolOutput', text)),
-    ];
-    lines.push(tableLine(cells, width));
-  }
-
-  return lines;
+  return renderResponsiveTable(issues, theme, width, {
+    columns: ISSUE_TABLE_COLUMNS,
+    primary: {
+      label: 'Title',
+      minWidth: TABLE_TITLE_MIN_WIDTH,
+      value: issueTitle,
+      style: (theme) => toolOutputStyle(theme),
+    },
+    dropOrder: ['labels', 'assignee', 'priority', 'state'],
+    fallback: formatIssueListLine,
+  });
 }
 
-class IssueListResultComponent {
-  constructor(
-    private readonly issues: IssueLike[],
-    private readonly theme: Theme,
-  ) {}
-
-  render(width: number): string[] {
-    const lines: string[] = [''];
-
-    if (this.issues.length === 0) {
-      lines.push(this.theme.fg('dim', 'No issues found'));
-      lines.push('');
-      lines.push(jsonHint());
-      return lines.map((line) => truncateToWidth(line, width));
-    }
-
-    const shown = this.issues.slice(0, ISSUE_LIST_PREVIEW_LIMIT);
-    lines.push(this.theme.fg('success', `✓ ${plural(this.issues.length, 'issue')} returned`));
-    lines.push('');
-    lines.push(...renderIssueTable(shown, this.theme, width));
-
-    if (shown.length < this.issues.length) {
-      lines.push(
-        this.theme.fg('dim', `… ${plural(this.issues.length - shown.length, 'more issue')}`),
-      );
-    }
-
-    lines.push('');
-    lines.push(jsonHint());
-
-    return lines.map((line) => truncateToWidth(line, width));
-  }
-
-  invalidate(): void {}
-}
-
-function formatToolArgValue(value: unknown): string | undefined {
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (!trimmed) return undefined;
-    return trimmed.includes(' ') ? `"${truncate(trimmed, 48)}"` : truncate(trimmed, 48);
-  }
-  if (typeof value === 'number') return String(value);
-  if (typeof value === 'boolean') return value ? 'true' : undefined;
-  if (Array.isArray(value)) return value.length ? `[${value.length}]` : undefined;
-  if (value && typeof value === 'object') return '{…}';
-  return undefined;
-}
-
-function renderIssueToolCall(
-  toolName: string,
-  args: IssueToolArgs | undefined,
-  theme: Theme,
-  fields: Array<[keyof IssueToolArgs & string, string]>,
-): Text {
-  let text = theme.fg('toolTitle', theme.bold(toolName));
-  const parts = fields
-    .map(([key, label]) => {
-      const value = formatToolArgValue(args?.[key]);
-      return value ? `${label}=${value}` : undefined;
-    })
-    .filter((part): part is string => !!part);
-
-  if (parts.length) {
-    text += ` ${theme.fg('dim', parts.join('  '))}`;
-  }
-
-  return new Text(text, 0, 0);
-}
-
-export function renderLinearIssueListCall(args: IssueToolArgs | undefined, theme: Theme): Text {
-  return renderIssueToolCall('linear_list_issues', args, theme, [
+export function renderLinearIssueListCall(args: ToolArgs | undefined, theme: Theme): Text {
+  return renderLinearToolCall('linear_list_issues', args, theme, [
     ['query', 'query'],
     ['teamKey', 'team'],
     ['teamId', 'teamId'],
@@ -370,8 +211,8 @@ export function renderLinearIssueListCall(args: IssueToolArgs | undefined, theme
   ]);
 }
 
-export function renderLinearIssueSearchCall(args: IssueToolArgs | undefined, theme: Theme): Text {
-  return renderIssueToolCall('linear_search_issues', args, theme, [
+export function renderLinearIssueSearchCall(args: ToolArgs | undefined, theme: Theme): Text {
+  return renderLinearToolCall('linear_search_issues', args, theme, [
     ['term', 'search'],
     ['includeComments', 'comments'],
     ['teamId', 'teamId'],
@@ -387,7 +228,7 @@ export function renderLinearIssueListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
-): Text | IssueListResultComponent {
+): Text | LinearListResultComponent<IssueLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading issues…'), 0, 0);
   if (options.expanded) return expandedJson(result, theme);
 
@@ -395,7 +236,12 @@ export function renderLinearIssueListResult(
     ? (issueDetails(result).issues as IssueLike[])
     : [];
 
-  return new IssueListResultComponent(issues, theme);
+  return new LinearListResultComponent(issues, theme, {
+    noun: 'issue',
+    emptyLabel: 'No issues found',
+    previewLimit: ISSUE_LIST_PREVIEW_LIMIT,
+    renderItems: renderIssueTable,
+  });
 }
 
 export function renderLinearIssueResult(actionLabel: string) {
