@@ -17,6 +17,13 @@ import {
 import { ISSUE_SELECTION } from '../selections';
 import type { LinearIssue, JsonObject } from '../types';
 import { compactObject, asObject, asObjectArray, asString, mergeFilters } from '../util';
+import {
+  renderLinearIssueListCall,
+  renderLinearIssueListResult,
+  renderLinearIssueResult,
+  renderLinearIssueSearchCall,
+  renderLinearIssueSuccessResult,
+} from '../renderers/issues';
 
 export function issueTools() {
   return [
@@ -46,6 +53,7 @@ export function issueTools() {
         ...FilterParam,
         ...SortParam,
       }),
+      renderCall: renderLinearIssueListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const convenienceFilter = compactObject({
@@ -113,6 +121,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueListResult,
     }),
     defineTool({
       name: 'linear_get_issue',
@@ -149,6 +158,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueResult('Issue'),
     }),
     defineTool({
       name: 'linear_create_issue',
@@ -320,6 +330,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueResult('Created issue'),
     }),
     defineTool({
       name: 'linear_update_issue',
@@ -484,6 +495,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueResult('Updated issue'),
     }),
     defineTool({
       name: 'linear_delete_issue',
@@ -522,6 +534,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueSuccessResult('Deleted'),
     }),
     defineTool({
       name: 'linear_archive_issue',
@@ -561,6 +574,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueSuccessResult('Archived'),
     }),
     defineTool({
       name: 'linear_unarchive_issue',
@@ -598,6 +612,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueSuccessResult('Unarchived'),
     }),
     defineTool({
       name: 'linear_search_issues',
@@ -610,6 +625,7 @@ export function issueTools() {
         ...PaginationParams,
         ...FilterParam,
       }),
+      renderCall: renderLinearIssueSearchCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
@@ -669,6 +685,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueListResult,
     }),
   ];
 }
