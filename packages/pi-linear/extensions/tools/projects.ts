@@ -5,6 +5,18 @@ import { PaginationParams, FilterParam, SortParam, RawInputParam } from '../para
 import { PROJECT_SELECTION } from '../selections';
 import type { JsonObject } from '../types';
 import { compactObject, asObject, asObjectArray, asString } from '../util';
+import {
+  renderLinearArchiveProjectCall,
+  renderLinearDeleteProjectCall,
+  renderLinearGetProjectCall,
+  renderLinearProjectListCall,
+  renderLinearProjectListResult,
+  renderLinearProjectResult,
+  renderLinearProjectSuccessResult,
+  renderLinearSaveProjectCall,
+  renderLinearSaveProjectResult,
+  renderLinearUnarchiveProjectCall,
+} from '../renderers/projects';
 
 export function projectTools() {
   return [
@@ -17,6 +29,7 @@ export function projectTools() {
         ...FilterParam,
         ...SortParam,
       }),
+      renderCall: renderLinearProjectListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
@@ -70,6 +83,7 @@ export function projectTools() {
           };
         });
       },
+      renderResult: renderLinearProjectListResult,
     }),
     defineTool({
       name: 'linear_get_project',
@@ -78,6 +92,7 @@ export function projectTools() {
       parameters: Type.Object({
         projectId: Type.String({ description: 'Project id.' }),
       }),
+      renderCall: renderLinearGetProjectCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{ project: JsonObject | null }>(
@@ -100,6 +115,7 @@ export function projectTools() {
           };
         });
       },
+      renderResult: renderLinearProjectResult('Project'),
     }),
     defineTool({
       name: 'linear_save_project',
@@ -145,6 +161,7 @@ export function projectTools() {
         slackChannelName: Type.Optional(Type.String()),
         ...RawInputParam,
       }),
+      renderCall: renderLinearSaveProjectCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
@@ -260,6 +277,7 @@ export function projectTools() {
           };
         });
       },
+      renderResult: renderLinearSaveProjectResult,
     }),
     defineTool({
       name: 'linear_delete_project',
@@ -268,6 +286,7 @@ export function projectTools() {
       parameters: Type.Object({
         projectId: Type.String(),
       }),
+      renderCall: renderLinearDeleteProjectCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -293,6 +312,7 @@ export function projectTools() {
           };
         });
       },
+      renderResult: renderLinearProjectSuccessResult('Deleted'),
     }),
     defineTool({
       name: 'linear_archive_project',
@@ -302,6 +322,7 @@ export function projectTools() {
         projectId: Type.String(),
         trash: Type.Optional(Type.Boolean()),
       }),
+      renderCall: renderLinearArchiveProjectCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -327,6 +348,7 @@ export function projectTools() {
           };
         });
       },
+      renderResult: renderLinearProjectSuccessResult('Archived'),
     }),
     defineTool({
       name: 'linear_unarchive_project',
@@ -335,6 +357,7 @@ export function projectTools() {
       parameters: Type.Object({
         projectId: Type.String(),
       }),
+      renderCall: renderLinearUnarchiveProjectCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -360,6 +383,7 @@ export function projectTools() {
           };
         });
       },
+      renderResult: renderLinearProjectSuccessResult('Unarchived'),
     }),
   ];
 }

@@ -5,6 +5,17 @@ import { PaginationParams, FilterParam, RawInputParam, TeamConvenienceParams } f
 import { DOCUMENT_SELECTION } from '../selections';
 import type { JsonObject } from '../types';
 import { compactObject, asObject, asString } from '../util';
+import {
+  renderLinearCreateDocumentCall,
+  renderLinearDeleteDocumentCall,
+  renderLinearDocumentListCall,
+  renderLinearDocumentListResult,
+  renderLinearDocumentResult,
+  renderLinearDocumentSuccessResult,
+  renderLinearGetDocumentCall,
+  renderLinearUnarchiveDocumentCall,
+  renderLinearUpdateDocumentCall,
+} from '../renderers/documents';
 
 export function documentTools() {
   return [
@@ -16,6 +27,7 @@ export function documentTools() {
         ...PaginationParams,
         ...FilterParam,
       }),
+      renderCall: renderLinearDocumentListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
@@ -66,6 +78,7 @@ export function documentTools() {
           };
         });
       },
+      renderResult: renderLinearDocumentListResult,
     }),
     defineTool({
       name: 'linear_get_document',
@@ -74,6 +87,7 @@ export function documentTools() {
       parameters: Type.Object({
         documentId: Type.String(),
       }),
+      renderCall: renderLinearGetDocumentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{ document: JsonObject | null }>(
@@ -96,6 +110,7 @@ export function documentTools() {
           };
         });
       },
+      renderResult: renderLinearDocumentResult('Document'),
     }),
     defineTool({
       name: 'linear_create_document',
@@ -120,6 +135,7 @@ export function documentTools() {
         title: Type.Optional(Type.String()),
         ...RawInputParam,
       }),
+      renderCall: renderLinearCreateDocumentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
@@ -188,6 +204,7 @@ export function documentTools() {
           };
         });
       },
+      renderResult: renderLinearDocumentResult('Created document'),
     }),
     defineTool({
       name: 'linear_update_document',
@@ -214,6 +231,7 @@ export function documentTools() {
         trashed: Type.Optional(Type.Boolean()),
         ...RawInputParam,
       }),
+      renderCall: renderLinearUpdateDocumentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
@@ -286,6 +304,7 @@ export function documentTools() {
           };
         });
       },
+      renderResult: renderLinearDocumentResult('Updated document'),
     }),
     defineTool({
       name: 'linear_delete_document',
@@ -294,6 +313,7 @@ export function documentTools() {
       parameters: Type.Object({
         documentId: Type.String(),
       }),
+      renderCall: renderLinearDeleteDocumentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -319,6 +339,7 @@ export function documentTools() {
           };
         });
       },
+      renderResult: renderLinearDocumentSuccessResult('Deleted'),
     }),
     defineTool({
       name: 'linear_unarchive_document',
@@ -327,6 +348,7 @@ export function documentTools() {
       parameters: Type.Object({
         documentId: Type.String(),
       }),
+      renderCall: renderLinearUnarchiveDocumentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -352,6 +374,7 @@ export function documentTools() {
           };
         });
       },
+      renderResult: renderLinearDocumentSuccessResult('Unarchived'),
     }),
   ];
 }
