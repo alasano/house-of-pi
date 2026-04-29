@@ -1,6 +1,18 @@
 # pi-linear
 
-![pi-linear screenshot](assets/screenshot.png)
+<p align="center">
+  <img src="assets/screenshot.png" alt="pi-linear settings overlay" />
+</p>
+
+<p align="center"><em>Configure Linear tools and output defaults from the settings overlay.</em></p>
+
+---
+
+<p align="center">
+  <img src="assets/linear_list_issues.png" alt="Human-readable Linear issue list" />
+</p>
+
+<p align="center"><em>Human-readable issue results keep screenshots clean while full JSON remains available with Ctrl+O.</em></p>
 
 Linear integration for [pi](https://pi.dev) with 55+ tools covering issues, projects, documents, initiatives, comments, relations, and more. Includes multi-workspace auth and a per-tool settings overlay.
 
@@ -46,7 +58,7 @@ Credentials are stored at `~/.pi/agent/state/extensions/linear/credentials.json`
 
 ## Tool settings
 
-Run `/linear-settings` to open an overlay where you can enable or disable tools by category or individually. Disabled tools are removed from the LLM's context entirely. Preferences persist across sessions.
+Run `/linear-settings` to open an overlay where you can choose the default output view and enable or disable tools by category or individually. Linear results default to a human-readable view, with full JSON available via `Ctrl+O`; you can flip the default to full JSON if you prefer. Disabled tools are removed from the LLM's context entirely. Preferences persist across sessions.
 
 ## Tools (55)
 
