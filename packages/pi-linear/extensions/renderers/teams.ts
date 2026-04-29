@@ -8,6 +8,7 @@ import {
   asString,
   cleanOneLine,
   expandedJson,
+  shouldShowJson,
   jsonHint,
   LinearListResultComponent,
   renderLinearToolCall,
@@ -15,6 +16,7 @@ import {
   toolOutputStyle,
   truncate,
   truncateLine,
+  type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
 } from './common';
@@ -212,9 +214,10 @@ export function renderLinearTeamListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text | LinearListResultComponent<TeamLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading teams…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const teams = Array.isArray(teamDetails(result).teams)
     ? (teamDetails(result).teams as TeamLike[])
@@ -229,9 +232,14 @@ export function renderLinearTeamListResult(
 }
 
 export function renderLinearTeamResult(actionLabel: string) {
-  return (result: AgentToolResult<any>, options: ToolRenderResultOptions, theme: Theme): Text => {
+  return (
+    result: AgentToolResult<any>,
+    options: ToolRenderResultOptions,
+    theme: Theme,
+    context: LinearToolRenderContext,
+  ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
-    if (options.expanded) return expandedJson(result, theme);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
     return renderTeamCard(actionLabel, teamDetails(result).team, theme);
   };

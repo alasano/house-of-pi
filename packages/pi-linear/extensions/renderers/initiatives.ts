@@ -9,6 +9,7 @@ import {
   cleanOneLine,
   dimStyle,
   expandedJson,
+  shouldShowJson,
   jsonHint,
   LinearListResultComponent,
   mutedStyle,
@@ -17,6 +18,7 @@ import {
   toolOutputStyle,
   truncate,
   truncateLine,
+  type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
 } from './common';
@@ -190,10 +192,11 @@ function renderInitiativeCard(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
   actionLabel: string,
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const initiative = initiativeDetails(result).initiative;
   if (!initiative) {
@@ -266,9 +269,10 @@ export function renderLinearInitiativeListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text | LinearListResultComponent<InitiativeLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading initiatives…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const initiatives = Array.isArray(initiativeDetails(result).initiatives)
     ? (initiativeDetails(result).initiatives as InitiativeLike[])
@@ -283,8 +287,12 @@ export function renderLinearInitiativeListResult(
 }
 
 export function renderLinearInitiativeResult(actionLabel: string) {
-  return (result: AgentToolResult<any>, options: ToolRenderResultOptions, theme: Theme): Text =>
-    renderInitiativeCard(result, options, theme, actionLabel);
+  return (
+    result: AgentToolResult<any>,
+    options: ToolRenderResultOptions,
+    theme: Theme,
+    context: LinearToolRenderContext,
+  ): Text => renderInitiativeCard(result, options, theme, context, actionLabel);
 }
 
 export function renderLinearSaveInitiativeResult(
@@ -295,7 +303,7 @@ export function renderLinearSaveInitiativeResult(
 ): Text {
   const args = (context.args ?? {}) as { initiativeId?: unknown };
   const actionLabel = asString(args.initiativeId) ? 'Updated initiative' : 'Created initiative';
-  return renderInitiativeCard(result, options, theme, actionLabel);
+  return renderInitiativeCard(result, options, theme, context, actionLabel);
 }
 
 export function renderLinearInitiativeSuccessResult(defaultActionLabel: string) {
@@ -307,7 +315,7 @@ export function renderLinearInitiativeSuccessResult(defaultActionLabel: string) 
   ): Text => {
     if (options.isPartial)
       return new Text(theme.fg('warning', `${defaultActionLabel} initiative…`), 0, 0);
-    if (options.expanded) return expandedJson(result, theme);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
     const details = initiativeDetails(result);
     const args = (context.args ?? {}) as { initiativeId?: unknown };

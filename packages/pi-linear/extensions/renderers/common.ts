@@ -1,5 +1,17 @@
-import { keyHint, type AgentToolResult, type Theme } from '@mariozechner/pi-coding-agent';
+import {
+  keyHint,
+  type AgentToolResult,
+  type Theme,
+  type ToolRenderResultOptions,
+} from '@mariozechner/pi-coding-agent';
 import { Text, truncateToWidth, visibleWidth } from '@mariozechner/pi-tui';
+import {
+  getDefaultJsonView,
+  registerLinearResultRenderer,
+  type LinearToolRenderContext,
+} from './state';
+
+export type { LinearToolRenderContext } from './state';
 
 export type ToolArgs = Record<string, unknown>;
 export type CellStyle = (text: string) => string;
@@ -64,6 +76,14 @@ export function expandedJson(result: AgentToolResult<any>, theme: Theme): Text {
     'show summary',
   )}`;
   return new Text(text, 0, 0);
+}
+
+export function shouldShowJson(
+  options: ToolRenderResultOptions,
+  context?: LinearToolRenderContext,
+): boolean {
+  registerLinearResultRenderer(context);
+  return options.expanded !== getDefaultJsonView();
 }
 
 export function jsonHint(): string {

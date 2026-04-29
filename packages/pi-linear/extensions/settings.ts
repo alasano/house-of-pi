@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import type { ExtensionAPI, ExtensionContext } from '@mariozechner/pi-coding-agent';
 import { getAgentDir, getSettingsListTheme } from '@mariozechner/pi-coding-agent';
 import { type SettingItem, SettingsList } from '@mariozechner/pi-tui';
+import { invalidateLinearResultRenderers, setDefaultJsonView } from './renderers/state';
 
 const SETTINGS_PATH = join(getAgentDir(), 'state', 'extensions', 'linear', 'tool-settings.json');
 const OVERLAY_MAX_INNER = 60;
@@ -166,28 +167,37 @@ const ALL_LINEAR_TOOLS = TOOL_CATEGORIES.flatMap((c) => c.tools);
 
 type ToolSettings = {
   disabledTools: string[];
+  defaultJsonView: boolean;
 };
 
 function createDefaultSettings(): ToolSettings {
-  return { disabledTools: [] };
+  return { disabledTools: [], defaultJsonView: false };
 }
 
 async function loadSettings(): Promise<ToolSettings> {
   try {
     const raw = JSON.parse(await fs.readFile(SETTINGS_PATH, 'utf8'));
     if (!raw || typeof raw !== 'object' || !Array.isArray(raw.disabledTools)) {
-      return createDefaultSettings();
+      const settings = createDefaultSettings();
+      setDefaultJsonView(settings.defaultJsonView);
+      return settings;
     }
-    return {
+    const settings = {
       disabledTools: raw.disabledTools.filter((t: unknown) => typeof t === 'string'),
+      defaultJsonView: typeof raw.defaultJsonView === 'boolean' ? raw.defaultJsonView : false,
     };
+    setDefaultJsonView(settings.defaultJsonView);
+    return settings;
   } catch {
-    return createDefaultSettings();
+    const settings = createDefaultSettings();
+    setDefaultJsonView(settings.defaultJsonView);
+    return settings;
   }
 }
 
 async function saveSettings(settings: ToolSettings): Promise<boolean> {
   try {
+    setDefaultJsonView(settings.defaultJsonView);
     await fs.mkdir(dirname(SETTINGS_PATH), { recursive: true });
     await fs.writeFile(SETTINGS_PATH, `${JSON.stringify(settings, null, 2)}\n`, 'utf8');
     return true;
@@ -256,8 +266,21 @@ function frameBody(title: string, bodyLines: string[], inner: number): string[] 
   return [top, ...framedBody, bottom];
 }
 
+function defaultOutputViewValue(settings: ToolSettings): string {
+  return settings.defaultJsonView ? 'Full JSON' : 'Human readable';
+}
+
 function buildItems(settings: ToolSettings): SettingItem[] {
-  const items: SettingItem[] = [];
+  const items: SettingItem[] = [
+    {
+      id: 'defaultJsonView',
+      label: 'Default output view',
+      description:
+        'Controls Linear tool result display. Ctrl+O toggles the other view per tool call.',
+      currentValue: defaultOutputViewValue(settings),
+      values: ['Human readable', 'Full JSON'],
+    },
+  ];
   for (const category of TOOL_CATEGORIES) {
     items.push({
       id: `category:${category.id}`,
@@ -308,7 +331,7 @@ async function showToolSettingsOverlay(
     () => {},
   );
   const probeLines = probeList.render(Math.max(8, OVERLAY_MAX_INNER - 2));
-  const overlayBodyLines = ['Toggle Linear tools by category or individually', '', ...probeLines];
+  const overlayBodyLines = ['Configure Linear output and enabled tools', '', ...probeLines];
   const overlayWidth = computeOverlayInner(overlayBodyLines, OVERLAY_MAX_INNER + 2) + 2;
 
   await ctx.ui.custom(
@@ -318,6 +341,16 @@ async function showToolSettingsOverlay(
         maxVisibleItems,
         settingsTheme,
         async (id, newValue) => {
+          if (id === 'defaultJsonView') {
+            const previousDefaultJsonView = settings.defaultJsonView;
+            settings.defaultJsonView = newValue === 'Full JSON';
+            await saveSettings(settings);
+            if (settings.defaultJsonView !== previousDefaultJsonView) {
+              invalidateLinearResultRenderers();
+            }
+            return;
+          }
+
           const nextEnabled = newValue === '[x]';
 
           if (id.startsWith('category:')) {
@@ -364,7 +397,7 @@ async function showToolSettingsOverlay(
           const provisionalInner = Math.max(24, Math.min(safeWidth - 2, OVERLAY_MAX_INNER));
           const listLines = settingsList.render(Math.max(8, provisionalInner - 2));
           const bodyLines = [
-            theme.fg('muted', 'Toggle Linear tools by category or individually'),
+            theme.fg('muted', 'Configure Linear output and enabled tools'),
             '',
             ...listLines,
           ];

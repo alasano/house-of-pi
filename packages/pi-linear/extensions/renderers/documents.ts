@@ -10,6 +10,7 @@ import {
   cleanOneLine,
   dimStyle,
   expandedJson,
+  shouldShowJson,
   jsonHint,
   LinearListResultComponent,
   mutedStyle,
@@ -18,6 +19,7 @@ import {
   toolOutputStyle,
   truncate,
   truncateLine,
+  type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
 } from './common';
@@ -243,9 +245,10 @@ export function renderLinearDocumentListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text | LinearListResultComponent<DocumentLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading documents…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const documents = Array.isArray(documentDetails(result).documents)
     ? (documentDetails(result).documents as DocumentLike[])
@@ -260,9 +263,14 @@ export function renderLinearDocumentListResult(
 }
 
 export function renderLinearDocumentResult(actionLabel: string) {
-  return (result: AgentToolResult<any>, options: ToolRenderResultOptions, theme: Theme): Text => {
+  return (
+    result: AgentToolResult<any>,
+    options: ToolRenderResultOptions,
+    theme: Theme,
+    context: LinearToolRenderContext,
+  ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
-    if (options.expanded) return expandedJson(result, theme);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
     const document = documentDetails(result).document;
     if (!document) {
@@ -292,7 +300,7 @@ export function renderLinearDocumentSuccessResult(defaultActionLabel: string) {
   ): Text => {
     if (options.isPartial)
       return new Text(theme.fg('warning', `${defaultActionLabel} document…`), 0, 0);
-    if (options.expanded) return expandedJson(result, theme);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
     const details = documentDetails(result);
     const args = (context.args ?? {}) as ToolArgs;

@@ -8,12 +8,14 @@ import {
   asString,
   cleanOneLine,
   expandedJson,
+  shouldShowJson,
   jsonHint,
   LinearListResultComponent,
   renderLinearToolCall,
   renderResponsiveTable,
   truncate,
   truncateLine,
+  type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
 } from './common';
@@ -235,9 +237,10 @@ export function renderLinearIssueLabelListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text | LinearListResultComponent<IssueLabelLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading issue labels…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const labels = Array.isArray(issueLabelDetails(result).labels)
     ? (issueLabelDetails(result).labels as IssueLabelLike[])
@@ -253,9 +256,14 @@ export function renderLinearIssueLabelListResult(
 }
 
 export function renderLinearIssueLabelResult(actionLabel: string) {
-  return (result: AgentToolResult<any>, options: ToolRenderResultOptions, theme: Theme): Text => {
+  return (
+    result: AgentToolResult<any>,
+    options: ToolRenderResultOptions,
+    theme: Theme,
+    context: LinearToolRenderContext,
+  ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
-    if (options.expanded) return expandedJson(result, theme);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
     return renderIssueLabelCard(actionLabel, issueLabelDetails(result).label, theme);
   };
@@ -268,7 +276,7 @@ export function renderLinearIssueLabelDeleteResult(
   context: { args?: unknown },
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Deleting issue label…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const details = issueLabelDetails(result);
   const args = argsObject(context);

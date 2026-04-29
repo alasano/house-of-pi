@@ -4,7 +4,15 @@ import {
   type ToolRenderResultOptions,
 } from '@mariozechner/pi-coding-agent';
 import { Text } from '@mariozechner/pi-tui';
-import { asString, expandedJson, jsonHint, renderLinearToolCall, type ToolArgs } from './common';
+import {
+  asString,
+  expandedJson,
+  shouldShowJson,
+  jsonHint,
+  renderLinearToolCall,
+  type LinearToolRenderContext,
+  type ToolArgs,
+} from './common';
 
 type WorkspaceSwitchResultDetails = {
   active?: string | null;
@@ -22,9 +30,10 @@ export function renderLinearSwitchWorkspaceResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Switching workspace…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const active = asString(workspaceSwitchDetails(result).active) ?? 'unknown';
   return new Text(

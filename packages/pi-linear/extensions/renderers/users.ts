@@ -9,6 +9,7 @@ import {
   cleanOneLine,
   dimStyle,
   expandedJson,
+  shouldShowJson,
   jsonHint,
   LinearListResultComponent,
   mutedStyle,
@@ -17,6 +18,7 @@ import {
   toolOutputStyle,
   truncate,
   truncateLine,
+  type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
 } from './common';
@@ -210,9 +212,10 @@ export function renderLinearUserListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text | LinearListResultComponent<UserLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading users…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const users = Array.isArray(userDetails(result).users)
     ? (userDetails(result).users as UserLike[])
@@ -230,9 +233,10 @@ export function renderLinearUserResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading user…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   return renderUserCard(userDetails(result).user, theme);
 }

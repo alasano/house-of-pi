@@ -11,6 +11,7 @@ import {
   cleanOneLine,
   dimStyle,
   expandedJson,
+  shouldShowJson,
   jsonHint,
   LinearListResultComponent,
   mutedStyle,
@@ -19,6 +20,7 @@ import {
   toolOutputStyle,
   truncate,
   truncateLine,
+  type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
 } from './common';
@@ -284,9 +286,10 @@ export function renderLinearIssueListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text | LinearListResultComponent<IssueLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading issues…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const issues = Array.isArray(issueDetails(result).issues)
     ? (issueDetails(result).issues as IssueLike[])
@@ -301,9 +304,14 @@ export function renderLinearIssueListResult(
 }
 
 export function renderLinearIssueResult(actionLabel: string) {
-  return (result: AgentToolResult<any>, options: ToolRenderResultOptions, theme: Theme): Text => {
+  return (
+    result: AgentToolResult<any>,
+    options: ToolRenderResultOptions,
+    theme: Theme,
+    context: LinearToolRenderContext,
+  ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
-    if (options.expanded) return expandedJson(result, theme);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
     const issue = issueDetails(result).issue as IssueLike | null | undefined;
     if (!issue) {
@@ -332,7 +340,7 @@ export function renderLinearIssueSuccessResult(defaultActionLabel: string) {
   ): Text => {
     if (options.isPartial)
       return new Text(theme.fg('warning', `${defaultActionLabel} issue…`), 0, 0);
-    if (options.expanded) return expandedJson(result, theme);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
     const details = issueDetails(result);
     const args = (context.args ?? {}) as {

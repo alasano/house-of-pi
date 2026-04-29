@@ -10,6 +10,7 @@ import {
   cleanOneLine,
   dimStyle,
   expandedJson,
+  shouldShowJson,
   jsonHint,
   LinearListResultComponent,
   mutedStyle,
@@ -18,6 +19,7 @@ import {
   toolOutputStyle,
   truncate,
   truncateLine,
+  type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
 } from './common';
@@ -166,10 +168,11 @@ function renderProjectLabelCard(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
   actionLabel: string,
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const label = projectLabelDetails(result).label;
   if (!label) {
@@ -225,9 +228,10 @@ export function renderLinearProjectLabelListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text | LinearListResultComponent<ProjectLabelLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading project labels…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const labels = Array.isArray(projectLabelDetails(result).labels)
     ? (projectLabelDetails(result).labels as ProjectLabelLike[])
@@ -242,8 +246,12 @@ export function renderLinearProjectLabelListResult(
 }
 
 export function renderLinearProjectLabelResult(actionLabel: string) {
-  return (result: AgentToolResult<any>, options: ToolRenderResultOptions, theme: Theme): Text =>
-    renderProjectLabelCard(result, options, theme, actionLabel);
+  return (
+    result: AgentToolResult<any>,
+    options: ToolRenderResultOptions,
+    theme: Theme,
+    context: LinearToolRenderContext,
+  ): Text => renderProjectLabelCard(result, options, theme, context, actionLabel);
 }
 
 export function renderLinearProjectLabelDeleteResult(
@@ -253,7 +261,7 @@ export function renderLinearProjectLabelDeleteResult(
   context: { args?: unknown },
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Deleting project label…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const details = projectLabelDetails(result);
   const args = (context.args ?? {}) as { id?: unknown };

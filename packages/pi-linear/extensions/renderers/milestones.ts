@@ -10,6 +10,7 @@ import {
   cleanOneLine,
   dimStyle,
   expandedJson,
+  shouldShowJson,
   jsonHint,
   LinearListResultComponent,
   mutedStyle,
@@ -18,6 +19,7 @@ import {
   toolOutputStyle,
   truncate,
   truncateLine,
+  type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
 } from './common';
@@ -171,10 +173,11 @@ function renderMilestoneCard(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
   actionLabel: string,
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const milestone = milestoneDetails(result).milestone;
   if (!milestone) {
@@ -227,9 +230,10 @@ export function renderLinearMilestoneListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text | LinearListResultComponent<MilestoneLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading milestones…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const milestones = Array.isArray(milestoneDetails(result).milestones)
     ? (milestoneDetails(result).milestones as MilestoneLike[])
@@ -244,8 +248,12 @@ export function renderLinearMilestoneListResult(
 }
 
 export function renderLinearMilestoneResult(actionLabel: string) {
-  return (result: AgentToolResult<any>, options: ToolRenderResultOptions, theme: Theme): Text =>
-    renderMilestoneCard(result, options, theme, actionLabel);
+  return (
+    result: AgentToolResult<any>,
+    options: ToolRenderResultOptions,
+    theme: Theme,
+    context: LinearToolRenderContext,
+  ): Text => renderMilestoneCard(result, options, theme, context, actionLabel);
 }
 
 export function renderLinearMilestoneSaveResult() {
@@ -257,7 +265,7 @@ export function renderLinearMilestoneSaveResult() {
   ): Text => {
     const args = (context.args ?? {}) as { milestoneId?: unknown };
     const actionLabel = asString(args.milestoneId) ? 'Updated milestone' : 'Created milestone';
-    return renderMilestoneCard(result, options, theme, actionLabel);
+    return renderMilestoneCard(result, options, theme, context, actionLabel);
   };
 }
 
@@ -268,7 +276,7 @@ export function renderLinearMilestoneDeleteResult(
   context: { args?: unknown },
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Deleting milestone…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const details = milestoneDetails(result);
   const args = (context.args ?? {}) as { milestoneId?: unknown };

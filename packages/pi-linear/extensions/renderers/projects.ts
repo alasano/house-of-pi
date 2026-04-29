@@ -9,6 +9,7 @@ import {
   cleanOneLine,
   dimStyle,
   expandedJson,
+  shouldShowJson,
   jsonHint,
   LinearListResultComponent,
   mutedStyle,
@@ -17,6 +18,7 @@ import {
   toolOutputStyle,
   truncate,
   truncateLine,
+  type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
 } from './common';
@@ -350,9 +352,10 @@ export function renderLinearProjectListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text | LinearListResultComponent<ProjectLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading projects…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const projects = Array.isArray(projectDetails(result).projects)
     ? (projectDetails(result).projects as ProjectLike[])
@@ -367,9 +370,14 @@ export function renderLinearProjectListResult(
 }
 
 export function renderLinearProjectResult(actionLabel: string) {
-  return (result: AgentToolResult<any>, options: ToolRenderResultOptions, theme: Theme): Text => {
+  return (
+    result: AgentToolResult<any>,
+    options: ToolRenderResultOptions,
+    theme: Theme,
+    context: LinearToolRenderContext,
+  ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
-    if (options.expanded) return expandedJson(result, theme);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
     return renderProjectCard(actionLabel, projectDetails(result).project, theme);
   };
@@ -383,7 +391,7 @@ export function renderLinearSaveProjectResult(
 ): Text {
   const actionLabel = isProjectUpdate(context) ? 'Updated project' : 'Created project';
   if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   return renderProjectCard(actionLabel, projectDetails(result).project, theme);
 }
@@ -397,7 +405,7 @@ export function renderLinearProjectSuccessResult(defaultActionLabel: string) {
   ): Text => {
     if (options.isPartial)
       return new Text(theme.fg('warning', `${defaultActionLabel} project…`), 0, 0);
-    if (options.expanded) return expandedJson(result, theme);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
     const details = projectDetails(result);
     const args = argsObject(context);

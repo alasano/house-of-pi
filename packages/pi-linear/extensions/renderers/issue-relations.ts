@@ -9,6 +9,7 @@ import {
   cleanOneLine,
   dimStyle,
   expandedJson,
+  shouldShowJson,
   jsonHint,
   LinearListResultComponent,
   renderLinearToolCall,
@@ -16,6 +17,7 @@ import {
   toolOutputStyle,
   truncate,
   truncateLine,
+  type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
 } from './common';
@@ -256,9 +258,10 @@ export function renderLinearIssueRelationListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text | LinearListResultComponent<IssueRelationLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading issue relations…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const issueRelations = Array.isArray(issueRelationDetails(result).issueRelations)
     ? (issueRelationDetails(result).issueRelations as IssueRelationLike[])
@@ -273,9 +276,14 @@ export function renderLinearIssueRelationListResult(
 }
 
 export function renderLinearIssueRelationResult(actionLabel: string) {
-  return (result: AgentToolResult<any>, options: ToolRenderResultOptions, theme: Theme): Text => {
+  return (
+    result: AgentToolResult<any>,
+    options: ToolRenderResultOptions,
+    theme: Theme,
+    context: LinearToolRenderContext,
+  ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
-    if (options.expanded) return expandedJson(result, theme);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
     return renderIssueRelationCard(actionLabel, issueRelationDetails(result).issueRelation, theme);
   };
@@ -288,7 +296,7 @@ export function renderLinearDeleteIssueRelationResult(
   context: { args?: unknown },
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Deleting issue relation…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const details = issueRelationDetails(result);
   const args = argsObject(context);

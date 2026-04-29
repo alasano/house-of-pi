@@ -10,6 +10,7 @@ import {
   cleanOneLine,
   dimStyle,
   expandedJson,
+  shouldShowJson,
   jsonHint,
   LinearListResultComponent,
   mutedStyle,
@@ -18,6 +19,7 @@ import {
   toolOutputStyle,
   truncate,
   truncateLine,
+  type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
 } from './common';
@@ -261,9 +263,10 @@ export function renderLinearCommentListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text | LinearListResultComponent<CommentLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading comments…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const comments = Array.isArray(commentDetails(result).comments)
     ? (commentDetails(result).comments as CommentLike[])
@@ -278,9 +281,14 @@ export function renderLinearCommentListResult(
 }
 
 export function renderLinearCommentResult(actionLabel: string) {
-  return (result: AgentToolResult<any>, options: ToolRenderResultOptions, theme: Theme): Text => {
+  return (
+    result: AgentToolResult<any>,
+    options: ToolRenderResultOptions,
+    theme: Theme,
+    context: LinearToolRenderContext,
+  ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
-    if (options.expanded) return expandedJson(result, theme);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
     return renderCommentCard(actionLabel, commentDetails(result).comment, theme);
   };
@@ -293,7 +301,7 @@ export function renderLinearDeleteCommentResult(
   context: { args?: unknown },
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Deleting comment…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const details = commentDetails(result);
   const args = argsObject(context);

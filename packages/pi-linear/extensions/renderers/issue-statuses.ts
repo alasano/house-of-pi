@@ -10,6 +10,7 @@ import {
   cleanOneLine,
   dimStyle,
   expandedJson,
+  shouldShowJson,
   LinearListResultComponent,
   mutedStyle,
   renderLinearToolCall,
@@ -17,6 +18,7 @@ import {
   toolOutputStyle,
   truncate,
   truncateLine,
+  type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
 } from './common';
@@ -178,9 +180,10 @@ export function renderLinearIssueStatusListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text | LinearListResultComponent<WorkflowStateLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading issue statuses…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const states = Array.isArray(workflowStateDetails(result).states)
     ? (workflowStateDetails(result).states as WorkflowStateLike[])

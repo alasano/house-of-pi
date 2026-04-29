@@ -9,6 +9,7 @@ import {
   cleanOneLine,
   dimStyle,
   expandedJson,
+  shouldShowJson,
   jsonHint,
   LinearListResultComponent,
   mutedStyle,
@@ -17,6 +18,7 @@ import {
   toolOutputStyle,
   truncate,
   truncateLine,
+  type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
 } from './common';
@@ -281,9 +283,10 @@ export function renderLinearProjectRelationListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
+  context: LinearToolRenderContext,
 ): Text | LinearListResultComponent<ProjectRelationLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading project relations…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const projectRelations = Array.isArray(projectRelationDetails(result).projectRelations)
     ? (projectRelationDetails(result).projectRelations as ProjectRelationLike[])
@@ -299,9 +302,14 @@ export function renderLinearProjectRelationListResult(
 }
 
 export function renderLinearProjectRelationResult(actionLabel: string) {
-  return (result: AgentToolResult<any>, options: ToolRenderResultOptions, theme: Theme): Text => {
+  return (
+    result: AgentToolResult<any>,
+    options: ToolRenderResultOptions,
+    theme: Theme,
+    context: LinearToolRenderContext,
+  ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
-    if (options.expanded) return expandedJson(result, theme);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
     return renderProjectRelationCard(
       actionLabel,
@@ -318,7 +326,7 @@ export function renderLinearDeleteProjectRelationResult(
   context: { args?: unknown },
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Deleting project relation…'), 0, 0);
-  if (options.expanded) return expandedJson(result, theme);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const details = projectRelationDetails(result);
   const args = argsObject(context);
