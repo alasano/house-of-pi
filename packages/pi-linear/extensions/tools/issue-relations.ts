@@ -5,6 +5,15 @@ import { PaginationParams } from '../params';
 import { ISSUE_RELATION_SELECTION } from '../selections';
 import type { JsonObject } from '../types';
 import { compactObject } from '../util';
+import {
+  renderLinearCreateIssueRelationCall,
+  renderLinearDeleteIssueRelationCall,
+  renderLinearDeleteIssueRelationResult,
+  renderLinearIssueRelationListCall,
+  renderLinearIssueRelationListResult,
+  renderLinearIssueRelationResult,
+  renderLinearUpdateIssueRelationCall,
+} from '../renderers/issue-relations';
 
 export function issueRelationTools() {
   return [
@@ -15,6 +24,7 @@ export function issueRelationTools() {
       parameters: Type.Object({
         ...PaginationParams,
       }),
+      renderCall: renderLinearIssueRelationListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
@@ -62,6 +72,7 @@ export function issueRelationTools() {
           };
         });
       },
+      renderResult: renderLinearIssueRelationListResult,
     }),
     defineTool({
       name: 'linear_create_issue_relation',
@@ -78,6 +89,7 @@ export function issueRelationTools() {
           description: 'Relation type: blocks, duplicate, related, or similar.',
         }),
       }),
+      renderCall: renderLinearCreateIssueRelationCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const input = {
@@ -116,6 +128,7 @@ export function issueRelationTools() {
           };
         });
       },
+      renderResult: renderLinearIssueRelationResult('Created issue relation'),
     }),
     defineTool({
       name: 'linear_update_issue_relation',
@@ -127,6 +140,7 @@ export function issueRelationTools() {
         issueId: Type.Optional(Type.String()),
         relatedIssueId: Type.Optional(Type.String()),
       }),
+      renderCall: renderLinearUpdateIssueRelationCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const [resolvedIssueId, resolvedRelatedIssueId] = await Promise.all([
@@ -176,6 +190,7 @@ export function issueRelationTools() {
           };
         });
       },
+      renderResult: renderLinearIssueRelationResult('Updated issue relation'),
     }),
     defineTool({
       name: 'linear_delete_issue_relation',
@@ -184,6 +199,7 @@ export function issueRelationTools() {
       parameters: Type.Object({
         id: Type.String(),
       }),
+      renderCall: renderLinearDeleteIssueRelationCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -209,6 +225,7 @@ export function issueRelationTools() {
           };
         });
       },
+      renderResult: renderLinearDeleteIssueRelationResult,
     }),
   ];
 }

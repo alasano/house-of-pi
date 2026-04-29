@@ -5,6 +5,16 @@ import { PaginationParams, FilterParam, RawInputParam } from '../params';
 import { MILESTONE_SELECTION } from '../selections';
 import type { JsonObject } from '../types';
 import { compactObject, asObject, asString, GenericObjectSchema } from '../util';
+import {
+  renderLinearMilestoneDeleteCall,
+  renderLinearMilestoneDeleteResult,
+  renderLinearMilestoneGetCall,
+  renderLinearMilestoneListCall,
+  renderLinearMilestoneListResult,
+  renderLinearMilestoneResult,
+  renderLinearMilestoneSaveCall,
+  renderLinearMilestoneSaveResult,
+} from '../renderers/milestones';
 
 export function milestoneTools() {
   return [
@@ -16,6 +26,7 @@ export function milestoneTools() {
         ...PaginationParams,
         ...FilterParam,
       }),
+      renderCall: renderLinearMilestoneListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
@@ -66,6 +77,7 @@ export function milestoneTools() {
           };
         });
       },
+      renderResult: renderLinearMilestoneListResult,
     }),
     defineTool({
       name: 'linear_get_milestone',
@@ -74,6 +86,7 @@ export function milestoneTools() {
       parameters: Type.Object({
         milestoneId: Type.String(),
       }),
+      renderCall: renderLinearMilestoneGetCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -98,6 +111,7 @@ export function milestoneTools() {
           };
         });
       },
+      renderResult: renderLinearMilestoneResult('Milestone'),
     }),
     defineTool({
       name: 'linear_save_milestone',
@@ -115,6 +129,7 @@ export function milestoneTools() {
         targetDate: Type.Optional(Type.String()),
         ...RawInputParam,
       }),
+      renderCall: renderLinearMilestoneSaveCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
@@ -212,6 +227,7 @@ export function milestoneTools() {
           };
         });
       },
+      renderResult: renderLinearMilestoneSaveResult(),
     }),
     defineTool({
       name: 'linear_delete_milestone',
@@ -220,6 +236,7 @@ export function milestoneTools() {
       parameters: Type.Object({
         milestoneId: Type.String(),
       }),
+      renderCall: renderLinearMilestoneDeleteCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -245,6 +262,7 @@ export function milestoneTools() {
           };
         });
       },
+      renderResult: renderLinearMilestoneDeleteResult,
     }),
   ];
 }

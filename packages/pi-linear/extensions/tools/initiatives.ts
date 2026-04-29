@@ -5,6 +5,18 @@ import { PaginationParams, FilterParam, SortParam, RawInputParam } from '../para
 import { INITIATIVE_SELECTION } from '../selections';
 import type { JsonObject } from '../types';
 import { compactObject, asObject, asObjectArray, asString } from '../util';
+import {
+  renderLinearArchiveInitiativeCall,
+  renderLinearDeleteInitiativeCall,
+  renderLinearGetInitiativeCall,
+  renderLinearInitiativeListCall,
+  renderLinearInitiativeListResult,
+  renderLinearInitiativeResult,
+  renderLinearInitiativeSuccessResult,
+  renderLinearSaveInitiativeCall,
+  renderLinearSaveInitiativeResult,
+  renderLinearUnarchiveInitiativeCall,
+} from '../renderers/initiatives';
 
 export function initiativeTools() {
   return [
@@ -17,6 +29,7 @@ export function initiativeTools() {
         ...FilterParam,
         ...SortParam,
       }),
+      renderCall: renderLinearInitiativeListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
@@ -70,6 +83,7 @@ export function initiativeTools() {
           };
         });
       },
+      renderResult: renderLinearInitiativeListResult,
     }),
     defineTool({
       name: 'linear_get_initiative',
@@ -78,6 +92,7 @@ export function initiativeTools() {
       parameters: Type.Object({
         initiativeId: Type.String(),
       }),
+      renderCall: renderLinearGetInitiativeCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{ initiative: JsonObject | null }>(
@@ -100,6 +115,7 @@ export function initiativeTools() {
           };
         });
       },
+      renderResult: renderLinearInitiativeResult('Initiative'),
     }),
     defineTool({
       name: 'linear_save_initiative',
@@ -127,6 +143,7 @@ export function initiativeTools() {
         updateRemindersHour: Type.Optional(Type.Integer()),
         ...RawInputParam,
       }),
+      renderCall: renderLinearSaveInitiativeCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
@@ -224,6 +241,7 @@ export function initiativeTools() {
           };
         });
       },
+      renderResult: renderLinearSaveInitiativeResult,
     }),
     defineTool({
       name: 'linear_delete_initiative',
@@ -232,6 +250,7 @@ export function initiativeTools() {
       parameters: Type.Object({
         initiativeId: Type.String(),
       }),
+      renderCall: renderLinearDeleteInitiativeCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -257,6 +276,7 @@ export function initiativeTools() {
           };
         });
       },
+      renderResult: renderLinearInitiativeSuccessResult('Deleted'),
     }),
     defineTool({
       name: 'linear_archive_initiative',
@@ -265,6 +285,7 @@ export function initiativeTools() {
       parameters: Type.Object({
         initiativeId: Type.String(),
       }),
+      renderCall: renderLinearArchiveInitiativeCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -290,6 +311,7 @@ export function initiativeTools() {
           };
         });
       },
+      renderResult: renderLinearInitiativeSuccessResult('Archived'),
     }),
     defineTool({
       name: 'linear_unarchive_initiative',
@@ -298,6 +320,7 @@ export function initiativeTools() {
       parameters: Type.Object({
         initiativeId: Type.String(),
       }),
+      renderCall: renderLinearUnarchiveInitiativeCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -323,6 +346,7 @@ export function initiativeTools() {
           };
         });
       },
+      renderResult: renderLinearInitiativeSuccessResult('Unarchived'),
     }),
   ];
 }

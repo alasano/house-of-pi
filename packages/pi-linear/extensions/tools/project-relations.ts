@@ -5,6 +5,15 @@ import { PaginationParams } from '../params';
 import { PROJECT_RELATION_SELECTION } from '../selections';
 import type { JsonObject } from '../types';
 import { compactObject } from '../util';
+import {
+  renderLinearCreateProjectRelationCall,
+  renderLinearDeleteProjectRelationCall,
+  renderLinearDeleteProjectRelationResult,
+  renderLinearProjectRelationListCall,
+  renderLinearProjectRelationListResult,
+  renderLinearProjectRelationResult,
+  renderLinearUpdateProjectRelationCall,
+} from '../renderers/project-relations';
 
 export function projectRelationTools() {
   return [
@@ -15,6 +24,7 @@ export function projectRelationTools() {
       parameters: Type.Object({
         ...PaginationParams,
       }),
+      renderCall: renderLinearProjectRelationListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
@@ -62,6 +72,7 @@ export function projectRelationTools() {
           };
         });
       },
+      renderResult: renderLinearProjectRelationListResult,
     }),
     defineTool({
       name: 'linear_create_project_relation',
@@ -78,6 +89,7 @@ export function projectRelationTools() {
         projectMilestoneId: Type.Optional(Type.String()),
         relatedProjectMilestoneId: Type.Optional(Type.String()),
       }),
+      renderCall: renderLinearCreateProjectRelationCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const input = compactObject({
@@ -120,6 +132,7 @@ export function projectRelationTools() {
           };
         });
       },
+      renderResult: renderLinearProjectRelationResult('Created project relation'),
     }),
     defineTool({
       name: 'linear_update_project_relation',
@@ -135,6 +148,7 @@ export function projectRelationTools() {
         projectMilestoneId: Type.Optional(Type.String()),
         relatedProjectMilestoneId: Type.Optional(Type.String()),
       }),
+      renderCall: renderLinearUpdateProjectRelationCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const input = compactObject({
@@ -181,6 +195,7 @@ export function projectRelationTools() {
           };
         });
       },
+      renderResult: renderLinearProjectRelationResult('Updated project relation'),
     }),
     defineTool({
       name: 'linear_delete_project_relation',
@@ -189,6 +204,7 @@ export function projectRelationTools() {
       parameters: Type.Object({
         id: Type.String(),
       }),
+      renderCall: renderLinearDeleteProjectRelationCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -214,6 +230,7 @@ export function projectRelationTools() {
           };
         });
       },
+      renderResult: renderLinearDeleteProjectRelationResult,
     }),
   ];
 }

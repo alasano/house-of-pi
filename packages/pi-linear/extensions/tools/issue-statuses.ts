@@ -5,6 +5,10 @@ import { PaginationParams, FilterParam } from '../params';
 import { WORKFLOW_STATE_SELECTION } from '../selections';
 import type { JsonObject } from '../types';
 import { compactObject, asObject } from '../util';
+import {
+  renderLinearIssueStatusListCall,
+  renderLinearIssueStatusListResult,
+} from '../renderers/issue-statuses';
 
 export function issueStatusTools() {
   return [
@@ -17,6 +21,7 @@ export function issueStatusTools() {
         ...PaginationParams,
         ...FilterParam,
       }),
+      renderCall: renderLinearIssueStatusListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
@@ -67,6 +72,7 @@ export function issueStatusTools() {
           };
         });
       },
+      renderResult: renderLinearIssueStatusListResult,
     }),
   ];
 }

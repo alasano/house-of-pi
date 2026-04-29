@@ -5,6 +5,15 @@ import { PaginationParams, FilterParam, RawInputParam } from '../params';
 import { COMMENT_SELECTION } from '../selections';
 import type { JsonObject } from '../types';
 import { compactObject, asObject, asString, GenericObjectSchema } from '../util';
+import {
+  renderLinearCommentListCall,
+  renderLinearCommentListResult,
+  renderLinearCommentResult,
+  renderLinearCreateCommentCall,
+  renderLinearDeleteCommentCall,
+  renderLinearDeleteCommentResult,
+  renderLinearUpdateCommentCall,
+} from '../renderers/comments';
 
 export function commentTools() {
   return [
@@ -16,6 +25,7 @@ export function commentTools() {
         ...PaginationParams,
         ...FilterParam,
       }),
+      renderCall: renderLinearCommentListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
@@ -66,6 +76,7 @@ export function commentTools() {
           };
         });
       },
+      renderResult: renderLinearCommentListResult,
     }),
     defineTool({
       name: 'linear_create_comment',
@@ -90,6 +101,7 @@ export function commentTools() {
         subscriberIds: Type.Optional(Type.Array(Type.String())),
         ...RawInputParam,
       }),
+      renderCall: renderLinearCreateCommentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
@@ -146,6 +158,7 @@ export function commentTools() {
           };
         });
       },
+      renderResult: renderLinearCommentResult('Created comment'),
     }),
     defineTool({
       name: 'linear_update_comment',
@@ -157,6 +170,7 @@ export function commentTools() {
         quotedText: Type.Optional(Type.String()),
         ...RawInputParam,
       }),
+      renderCall: renderLinearUpdateCommentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
@@ -199,6 +213,7 @@ export function commentTools() {
           };
         });
       },
+      renderResult: renderLinearCommentResult('Updated comment'),
     }),
     defineTool({
       name: 'linear_delete_comment',
@@ -207,6 +222,7 @@ export function commentTools() {
       parameters: Type.Object({
         id: Type.String(),
       }),
+      renderCall: renderLinearDeleteCommentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -232,6 +248,7 @@ export function commentTools() {
           };
         });
       },
+      renderResult: renderLinearDeleteCommentResult,
     }),
   ];
 }

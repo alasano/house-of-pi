@@ -5,6 +5,15 @@ import { PaginationParams, FilterParam, RawInputParam } from '../params';
 import { PROJECT_LABEL_SELECTION } from '../selections';
 import type { JsonObject } from '../types';
 import { compactObject, asObject, asString } from '../util';
+import {
+  renderLinearCreateProjectLabelCall,
+  renderLinearDeleteProjectLabelCall,
+  renderLinearProjectLabelDeleteResult,
+  renderLinearProjectLabelListCall,
+  renderLinearProjectLabelListResult,
+  renderLinearProjectLabelResult,
+  renderLinearUpdateProjectLabelCall,
+} from '../renderers/project-labels';
 
 export function projectLabelTools() {
   return [
@@ -16,6 +25,7 @@ export function projectLabelTools() {
         ...PaginationParams,
         ...FilterParam,
       }),
+      renderCall: renderLinearProjectLabelListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
@@ -66,6 +76,7 @@ export function projectLabelTools() {
           };
         });
       },
+      renderResult: renderLinearProjectLabelListResult,
     }),
     defineTool({
       name: 'linear_create_project_label',
@@ -79,6 +90,7 @@ export function projectLabelTools() {
         isGroup: Type.Optional(Type.Boolean()),
         ...RawInputParam,
       }),
+      renderCall: renderLinearCreateProjectLabelCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
@@ -127,6 +139,7 @@ export function projectLabelTools() {
           };
         });
       },
+      renderResult: renderLinearProjectLabelResult('Created project label'),
     }),
     defineTool({
       name: 'linear_update_project_label',
@@ -141,6 +154,7 @@ export function projectLabelTools() {
         isGroup: Type.Optional(Type.Boolean()),
         ...RawInputParam,
       }),
+      renderCall: renderLinearUpdateProjectLabelCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
@@ -189,6 +203,7 @@ export function projectLabelTools() {
           };
         });
       },
+      renderResult: renderLinearProjectLabelResult('Updated project label'),
     }),
     defineTool({
       name: 'linear_delete_project_label',
@@ -197,6 +212,7 @@ export function projectLabelTools() {
       parameters: Type.Object({
         id: Type.String(),
       }),
+      renderCall: renderLinearDeleteProjectLabelCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -222,6 +238,7 @@ export function projectLabelTools() {
           };
         });
       },
+      renderResult: renderLinearProjectLabelDeleteResult,
     }),
   ];
 }

@@ -17,6 +17,19 @@ import {
 import { ISSUE_SELECTION } from '../selections';
 import type { LinearIssue, JsonObject } from '../types';
 import { compactObject, asObject, asObjectArray, asString, mergeFilters } from '../util';
+import {
+  renderLinearArchiveIssueCall,
+  renderLinearCreateIssueCall,
+  renderLinearDeleteIssueCall,
+  renderLinearGetIssueCall,
+  renderLinearIssueListCall,
+  renderLinearIssueListResult,
+  renderLinearIssueResult,
+  renderLinearIssueSearchCall,
+  renderLinearIssueSuccessResult,
+  renderLinearUnarchiveIssueCall,
+  renderLinearUpdateIssueCall,
+} from '../renderers/issues';
 
 export function issueTools() {
   return [
@@ -46,6 +59,7 @@ export function issueTools() {
         ...FilterParam,
         ...SortParam,
       }),
+      renderCall: renderLinearIssueListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const convenienceFilter = compactObject({
@@ -113,6 +127,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueListResult,
     }),
     defineTool({
       name: 'linear_get_issue',
@@ -123,6 +138,7 @@ export function issueTools() {
           description: 'Issue identifier (ENG-123) or issue id.',
         }),
       }),
+      renderCall: renderLinearGetIssueCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const issueRef = params.issue.trim();
@@ -149,6 +165,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueResult('Issue'),
     }),
     defineTool({
       name: 'linear_create_issue',
@@ -232,6 +249,7 @@ export function issueTools() {
         ),
         ...RawInputParam,
       }),
+      renderCall: renderLinearCreateIssueCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
@@ -320,6 +338,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueResult('Created issue'),
     }),
     defineTool({
       name: 'linear_update_issue',
@@ -404,6 +423,7 @@ export function issueTools() {
         trashed: Type.Optional(Type.Boolean({ description: 'IssueUpdateInput.trashed' })),
         ...RawInputParam,
       }),
+      renderCall: renderLinearUpdateIssueCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const issueId = await resolveIssueId(apiKey, params.issue, signal);
@@ -484,6 +504,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueResult('Updated issue'),
     }),
     defineTool({
       name: 'linear_delete_issue',
@@ -495,6 +516,7 @@ export function issueTools() {
         }),
         permanentlyDelete: Type.Optional(Type.Boolean()),
       }),
+      renderCall: renderLinearDeleteIssueCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const issueId = await resolveIssueId(apiKey, params.issue, signal);
@@ -522,6 +544,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueSuccessResult('Deleted'),
     }),
     defineTool({
       name: 'linear_archive_issue',
@@ -534,6 +557,7 @@ export function issueTools() {
         }),
         trash: Type.Optional(Type.Boolean()),
       }),
+      renderCall: renderLinearArchiveIssueCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const issueId = await resolveIssueId(apiKey, params.issue, signal);
@@ -561,6 +585,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueSuccessResult('Archived'),
     }),
     defineTool({
       name: 'linear_unarchive_issue',
@@ -571,6 +596,7 @@ export function issueTools() {
           description: 'Issue identifier (ENG-123) or issue id.',
         }),
       }),
+      renderCall: renderLinearUnarchiveIssueCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const issueId = await resolveIssueId(apiKey, params.issue, signal);
@@ -598,6 +624,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueSuccessResult('Unarchived'),
     }),
     defineTool({
       name: 'linear_search_issues',
@@ -610,6 +637,7 @@ export function issueTools() {
         ...PaginationParams,
         ...FilterParam,
       }),
+      renderCall: renderLinearIssueSearchCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
@@ -669,6 +697,7 @@ export function issueTools() {
           };
         });
       },
+      renderResult: renderLinearIssueListResult,
     }),
   ];
 }

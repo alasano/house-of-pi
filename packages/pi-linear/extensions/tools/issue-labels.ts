@@ -5,6 +5,15 @@ import { PaginationParams, FilterParam, RawInputParam, TeamConvenienceParams } f
 import { ISSUE_LABEL_SELECTION } from '../selections';
 import type { JsonObject } from '../types';
 import { compactObject, asObject, asString, mergeFilters } from '../util';
+import {
+  renderLinearCreateIssueLabelCall,
+  renderLinearDeleteIssueLabelCall,
+  renderLinearIssueLabelDeleteResult,
+  renderLinearIssueLabelListCall,
+  renderLinearIssueLabelListResult,
+  renderLinearIssueLabelResult,
+  renderLinearUpdateIssueLabelCall,
+} from '../renderers/issue-labels';
 
 export function issueLabelTools() {
   return [
@@ -17,6 +26,7 @@ export function issueLabelTools() {
         ...PaginationParams,
         ...FilterParam,
       }),
+      renderCall: renderLinearIssueLabelListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const resolvedTeamId =
@@ -82,6 +92,7 @@ export function issueLabelTools() {
           };
         });
       },
+      renderResult: renderLinearIssueLabelListResult,
     }),
     defineTool({
       name: 'linear_create_issue_label',
@@ -100,6 +111,7 @@ export function issueLabelTools() {
         replaceTeamLabels: Type.Optional(Type.Boolean()),
         ...RawInputParam,
       }),
+      renderCall: renderLinearCreateIssueLabelCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
@@ -166,6 +178,7 @@ export function issueLabelTools() {
           };
         });
       },
+      renderResult: renderLinearIssueLabelResult('Created issue label'),
     }),
     defineTool({
       name: 'linear_update_issue_label',
@@ -182,6 +195,7 @@ export function issueLabelTools() {
         replaceTeamLabels: Type.Optional(Type.Boolean()),
         ...RawInputParam,
       }),
+      renderCall: renderLinearUpdateIssueLabelCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
@@ -235,6 +249,7 @@ export function issueLabelTools() {
           };
         });
       },
+      renderResult: renderLinearIssueLabelResult('Updated issue label'),
     }),
     defineTool({
       name: 'linear_delete_issue_label',
@@ -243,6 +258,7 @@ export function issueLabelTools() {
       parameters: Type.Object({
         id: Type.String(),
       }),
+      renderCall: renderLinearDeleteIssueLabelCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{
@@ -268,6 +284,7 @@ export function issueLabelTools() {
           };
         });
       },
+      renderResult: renderLinearIssueLabelDeleteResult,
     }),
   ];
 }
