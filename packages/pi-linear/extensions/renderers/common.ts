@@ -74,9 +74,30 @@ export function plural(count: number, singular: string, pluralForm = `${singular
   return `${count} ${count === 1 ? singular : pluralForm}`;
 }
 
+function truncatePlainToWidth(value: string, width: number, ellipsis = '...'): string {
+  if (width <= 0) return '';
+  if (visibleWidth(value) <= width) return value;
+
+  const ellipsisWidth = visibleWidth(ellipsis);
+  if (ellipsisWidth >= width) return ellipsis.slice(0, width);
+
+  const targetWidth = width - ellipsisWidth;
+  let output = '';
+  let outputWidth = 0;
+
+  for (const character of Array.from(value)) {
+    const characterWidth = visibleWidth(character);
+    if (outputWidth + characterWidth > targetWidth) break;
+    output += character;
+    outputWidth += characterWidth;
+  }
+
+  return `${output.trimEnd()}${ellipsis}`;
+}
+
 export function formatCell(rawValue: string, width: number, style: CellStyle): string {
   const cleanValue = cleanOneLine(rawValue || '—');
-  const truncated = truncateToWidth(cleanValue, width);
+  const truncated = truncatePlainToWidth(cleanValue, width);
   const padding = ' '.repeat(Math.max(0, width - visibleWidth(truncated)));
   return `${style(truncated)}${padding}`;
 }

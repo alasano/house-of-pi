@@ -5,6 +5,12 @@ import { PaginationParams, FilterParam } from '../params';
 import { TEAM_SELECTION } from '../selections';
 import type { LinearTeam, JsonObject } from '../types';
 import { compactObject, asObject } from '../util';
+import {
+  renderLinearGetTeamCall,
+  renderLinearTeamListCall,
+  renderLinearTeamListResult,
+  renderLinearTeamResult,
+} from '../renderers/teams';
 
 export function teamTools() {
   return [
@@ -17,6 +23,7 @@ export function teamTools() {
         ...PaginationParams,
         ...FilterParam,
       }),
+      renderCall: renderLinearTeamListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
@@ -72,6 +79,7 @@ export function teamTools() {
           };
         });
       },
+      renderResult: renderLinearTeamListResult,
     }),
     defineTool({
       name: 'linear_get_team',
@@ -80,6 +88,7 @@ export function teamTools() {
       parameters: Type.Object({
         teamId: Type.String(),
       }),
+      renderCall: renderLinearGetTeamCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{ team: JsonObject | null }>(
@@ -100,6 +109,7 @@ export function teamTools() {
           };
         });
       },
+      renderResult: renderLinearTeamResult('Team'),
     }),
   ];
 }

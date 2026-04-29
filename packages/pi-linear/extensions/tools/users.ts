@@ -5,6 +5,12 @@ import { PaginationParams, FilterParam, SortParam } from '../params';
 import { USER_SELECTION } from '../selections';
 import type { JsonObject } from '../types';
 import { compactObject, asObject, asObjectArray } from '../util';
+import {
+  renderLinearGetUserCall,
+  renderLinearUserListCall,
+  renderLinearUserListResult,
+  renderLinearUserResult,
+} from '../renderers/users';
 
 export function userTools() {
   return [
@@ -18,6 +24,7 @@ export function userTools() {
         ...SortParam,
         includeDisabled: Type.Optional(Type.Boolean()),
       }),
+      renderCall: renderLinearUserListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
@@ -74,6 +81,7 @@ export function userTools() {
           };
         });
       },
+      renderResult: renderLinearUserListResult,
     }),
     defineTool({
       name: 'linear_get_user',
@@ -82,6 +90,7 @@ export function userTools() {
       parameters: Type.Object({
         userId: Type.String(),
       }),
+      renderCall: renderLinearGetUserCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const data = await linearGraphQL<{ user: JsonObject | null }>(
@@ -102,6 +111,7 @@ export function userTools() {
           };
         });
       },
+      renderResult: renderLinearUserResult,
     }),
   ];
 }

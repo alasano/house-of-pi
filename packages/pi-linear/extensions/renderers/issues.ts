@@ -224,6 +224,62 @@ export function renderLinearIssueSearchCall(args: ToolArgs | undefined, theme: T
   ]);
 }
 
+export function renderLinearGetIssueCall(args: ToolArgs | undefined, theme: Theme): Text {
+  return renderLinearToolCall('linear_get_issue', args, theme, [['issue', 'issue']]);
+}
+
+export function renderLinearCreateIssueCall(args: ToolArgs | undefined, theme: Theme): Text {
+  return renderLinearToolCall('linear_create_issue', args, theme, [
+    ['title', 'title'],
+    ['teamKey', 'team'],
+    ['teamId', 'teamId'],
+    ['stateId', 'state'],
+    ['assigneeId', 'assignee'],
+    ['priority', 'priority'],
+    ['labelIds', 'labels'],
+    ['projectId', 'projectId'],
+    ['parentId', 'parentId'],
+    ['dueDate', 'due'],
+    ['input', 'input'],
+  ]);
+}
+
+export function renderLinearUpdateIssueCall(args: ToolArgs | undefined, theme: Theme): Text {
+  return renderLinearToolCall('linear_update_issue', args, theme, [
+    ['issue', 'issue'],
+    ['title', 'title'],
+    ['stateId', 'state'],
+    ['assigneeId', 'assignee'],
+    ['priority', 'priority'],
+    ['dueDate', 'due'],
+    ['clearDueDate', 'clearDue'],
+    ['labelIds', 'labels'],
+    ['addedLabelIds', 'addLabels'],
+    ['removedLabelIds', 'removeLabels'],
+    ['projectId', 'projectId'],
+    ['parentId', 'parentId'],
+    ['input', 'input'],
+  ]);
+}
+
+export function renderLinearDeleteIssueCall(args: ToolArgs | undefined, theme: Theme): Text {
+  return renderLinearToolCall('linear_delete_issue', args, theme, [
+    ['issue', 'issue'],
+    ['permanentlyDelete', 'permanent'],
+  ]);
+}
+
+export function renderLinearArchiveIssueCall(args: ToolArgs | undefined, theme: Theme): Text {
+  return renderLinearToolCall('linear_archive_issue', args, theme, [
+    ['issue', 'issue'],
+    ['trash', 'trash'],
+  ]);
+}
+
+export function renderLinearUnarchiveIssueCall(args: ToolArgs | undefined, theme: Theme): Text {
+  return renderLinearToolCall('linear_unarchive_issue', args, theme, [['issue', 'issue']]);
+}
+
 export function renderLinearIssueListResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
