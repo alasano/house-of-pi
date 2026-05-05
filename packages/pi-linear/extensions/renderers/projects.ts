@@ -39,6 +39,7 @@ type ProjectLike = {
   id?: string;
   name?: string | null;
   description?: string | null;
+  content?: string | null;
   state?: string | null;
   status?: { id?: string; name?: string | null } | null;
   priority?: number | null;
@@ -55,6 +56,12 @@ type ProjectLike = {
 type ProjectResultDetails = {
   project?: ProjectLike | null;
   projects?: ProjectLike[];
+  pageInfo?: {
+    hasNextPage?: boolean;
+    hasPreviousPage?: boolean;
+    startCursor?: string | null;
+    endCursor?: string | null;
+  };
   success?: boolean;
 };
 

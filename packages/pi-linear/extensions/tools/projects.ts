@@ -2,7 +2,7 @@ import { defineTool } from '@mariozechner/pi-coding-agent';
 import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
 import { PaginationParams, FilterParam, SortParam, RawInputParam } from '../params';
-import { PROJECT_SELECTION } from '../selections';
+import { PROJECT_DETAIL_SELECTION, PROJECT_LIST_SELECTION } from '../selections';
 import type { JsonObject } from '../types';
 import { compactObject, asObject, asObjectArray, asString } from '../util';
 import {
@@ -44,7 +44,15 @@ export function projectTools() {
           });
 
           const data = await linearGraphQL<{
-            projects: { nodes: Array<JsonObject> };
+            projects: {
+              nodes: Array<JsonObject>;
+              pageInfo: {
+                hasNextPage: boolean;
+                hasPreviousPage: boolean;
+                startCursor?: string | null;
+                endCursor?: string | null;
+              };
+            };
           }>(
             apiKey,
             `query ListProjects(
@@ -68,7 +76,13 @@ export function projectTools() {
                 sort: $sort
               ) {
                 nodes {
-                  ${PROJECT_SELECTION}
+                  ${PROJECT_LIST_SELECTION}
+                }
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
                 }
               }
             }`,
@@ -77,9 +91,10 @@ export function projectTools() {
           );
 
           const projects = data.projects.nodes;
+          const pageInfo = data.projects.pageInfo;
           return {
-            content: [{ type: 'text', text: JSON.stringify({ projects }, null, 2) }],
-            details: { projects },
+            content: [{ type: 'text', text: JSON.stringify({ projects, pageInfo }, null, 2) }],
+            details: { projects, pageInfo },
           };
         });
       },
@@ -99,7 +114,7 @@ export function projectTools() {
             apiKey,
             `query GetProject($id: String!) {
               project(id: $id) {
-                ${PROJECT_SELECTION}
+                ${PROJECT_DETAIL_SELECTION}
               }
             }`,
             { id: params.projectId },
@@ -220,7 +235,7 @@ export function projectTools() {
                 projectUpdate(id: $id, input: $input) {
                   success
                   project {
-                    ${PROJECT_SELECTION}
+                    ${PROJECT_DETAIL_SELECTION}
                   }
                 }
               }`,
@@ -255,7 +270,7 @@ export function projectTools() {
               projectCreate(input: $input, slackChannelName: $slackChannelName) {
                 success
                 project {
-                  ${PROJECT_SELECTION}
+                  ${PROJECT_DETAIL_SELECTION}
                 }
               }
             }`,

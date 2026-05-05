@@ -110,6 +110,8 @@ Run `/linear-settings` to open an overlay where you can choose the default outpu
 | `linear_archive_project`   | Archive or trash a project                       |
 | `linear_unarchive_project` | Restore an archived project                      |
 
+Project list results use a bounded summary selection and include `pageInfo` in the JSON output for cursor pagination. `linear_get_project` and project save results include the project's markdown `content` body.
+
 ### Project Labels
 
 | Tool                          | Description            |

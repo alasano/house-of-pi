@@ -94,7 +94,7 @@ export const ISSUE_LABEL_SELECTION = `
     }
   `;
 
-export const PROJECT_SELECTION = `
+const PROJECT_BASE_SELECTION = `
     id
     name
     description
@@ -116,7 +116,7 @@ export const PROJECT_SELECTION = `
     createdAt
     updatedAt
     url
-    teams {
+    teams(first: 10) {
       nodes {
         id
         key
@@ -128,7 +128,7 @@ export const PROJECT_SELECTION = `
       name
       email
     }
-    members {
+    members(first: 10) {
       nodes {
         id
         name
@@ -139,6 +139,13 @@ export const PROJECT_SELECTION = `
       id
       name
     }
+  `;
+
+export const PROJECT_LIST_SELECTION = PROJECT_BASE_SELECTION;
+
+export const PROJECT_DETAIL_SELECTION = `
+    ${PROJECT_BASE_SELECTION}
+    content
   `;
 
 export const PROJECT_LABEL_SELECTION = `
