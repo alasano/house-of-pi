@@ -3,7 +3,7 @@ import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
 import { PaginationParams } from '../params';
 import { PROJECT_RELATION_SELECTION } from '../selections';
-import type { JsonObject } from '../types';
+import type { JsonObject, LinearConnection } from '../types';
 import { compactObject } from '../util';
 import {
   renderLinearCreateProjectRelationCall,
@@ -37,7 +37,7 @@ export function projectRelationTools() {
           });
 
           const data = await linearGraphQL<{
-            projectRelations: { nodes: Array<JsonObject> };
+            projectRelations: LinearConnection<JsonObject>;
           }>(
             apiKey,
             `query ListProjectRelations(
@@ -59,6 +59,12 @@ export function projectRelationTools() {
                 nodes {
                   ${PROJECT_RELATION_SELECTION}
                 }
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
               }
             }`,
             variables,
@@ -66,9 +72,12 @@ export function projectRelationTools() {
           );
 
           const projectRelations = data.projectRelations.nodes;
+          const pageInfo = data.projectRelations.pageInfo;
           return {
-            content: [{ type: 'text', text: JSON.stringify({ projectRelations }, null, 2) }],
-            details: { projectRelations },
+            content: [
+              { type: 'text', text: JSON.stringify({ projectRelations, pageInfo }, null, 2) },
+            ],
+            details: { projectRelations, pageInfo },
           };
         });
       },

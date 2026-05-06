@@ -3,7 +3,7 @@ import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
 import { PaginationParams, FilterParam, RawInputParam } from '../params';
 import { COMMENT_SELECTION } from '../selections';
-import type { JsonObject } from '../types';
+import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asString, GenericObjectSchema } from '../util';
 import {
   renderLinearCommentListCall,
@@ -39,7 +39,7 @@ export function commentTools() {
           });
 
           const data = await linearGraphQL<{
-            comments: { nodes: Array<JsonObject> };
+            comments: LinearConnection<JsonObject>;
           }>(
             apiKey,
             `query ListComments(
@@ -63,6 +63,12 @@ export function commentTools() {
                 nodes {
                   ${COMMENT_SELECTION}
                 }
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
               }
             }`,
             variables,
@@ -70,9 +76,10 @@ export function commentTools() {
           );
 
           const comments = data.comments.nodes;
+          const pageInfo = data.comments.pageInfo;
           return {
-            content: [{ type: 'text', text: JSON.stringify({ comments }, null, 2) }],
-            details: { comments },
+            content: [{ type: 'text', text: JSON.stringify({ comments, pageInfo }, null, 2) }],
+            details: { comments, pageInfo },
           };
         });
       },

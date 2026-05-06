@@ -3,7 +3,7 @@ import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
 import { PaginationParams, FilterParam } from '../params';
 import { WORKFLOW_STATE_SELECTION } from '../selections';
-import type { JsonObject } from '../types';
+import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject } from '../util';
 import {
   renderLinearIssueStatusListCall,
@@ -35,7 +35,7 @@ export function issueStatusTools() {
           });
 
           const data = await linearGraphQL<{
-            workflowStates: { nodes: Array<JsonObject> };
+            workflowStates: LinearConnection<JsonObject>;
           }>(
             apiKey,
             `query ListIssueStatuses(
@@ -59,6 +59,12 @@ export function issueStatusTools() {
                 nodes {
                   ${WORKFLOW_STATE_SELECTION}
                 }
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
               }
             }`,
             variables,
@@ -66,9 +72,10 @@ export function issueStatusTools() {
           );
 
           const states = data.workflowStates.nodes;
+          const pageInfo = data.workflowStates.pageInfo;
           return {
-            content: [{ type: 'text', text: JSON.stringify({ states }, null, 2) }],
-            details: { states },
+            content: [{ type: 'text', text: JSON.stringify({ states, pageInfo }, null, 2) }],
+            details: { states, pageInfo },
           };
         });
       },

@@ -3,7 +3,7 @@ import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
 import { PaginationParams, FilterParam, RawInputParam } from '../params';
 import { PROJECT_LABEL_SELECTION } from '../selections';
-import type { JsonObject } from '../types';
+import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asString } from '../util';
 import {
   renderLinearCreateProjectLabelCall,
@@ -39,7 +39,7 @@ export function projectLabelTools() {
           });
 
           const data = await linearGraphQL<{
-            projectLabels: { nodes: Array<JsonObject> };
+            projectLabels: LinearConnection<JsonObject>;
           }>(
             apiKey,
             `query ListProjectLabels(
@@ -63,6 +63,12 @@ export function projectLabelTools() {
                 nodes {
                   ${PROJECT_LABEL_SELECTION}
                 }
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
               }
             }`,
             variables,
@@ -70,9 +76,10 @@ export function projectLabelTools() {
           );
 
           const labels = data.projectLabels.nodes;
+          const pageInfo = data.projectLabels.pageInfo;
           return {
-            content: [{ type: 'text', text: JSON.stringify({ labels }, null, 2) }],
-            details: { labels },
+            content: [{ type: 'text', text: JSON.stringify({ labels, pageInfo }, null, 2) }],
+            details: { labels, pageInfo },
           };
         });
       },

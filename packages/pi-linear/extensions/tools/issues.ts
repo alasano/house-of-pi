@@ -15,7 +15,7 @@ import {
   RawInputParam,
 } from '../params';
 import { ISSUE_SELECTION } from '../selections';
-import type { LinearIssue, JsonObject } from '../types';
+import type { LinearIssue, JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asObjectArray, asString, mergeFilters } from '../util';
 import {
   renderLinearArchiveIssueCall,
@@ -89,7 +89,7 @@ export function issueTools() {
             sort: asObjectArray(params.sort),
           });
 
-          const data = await linearGraphQL<{ issues: { nodes: LinearIssue[] } }>(
+          const data = await linearGraphQL<{ issues: LinearConnection<LinearIssue> }>(
             apiKey,
             `query ListIssues(
               $after: String
@@ -114,6 +114,12 @@ export function issueTools() {
                 nodes {
                   ${ISSUE_SELECTION}
                 }
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
               }
             }`,
             variables,
@@ -121,9 +127,10 @@ export function issueTools() {
           );
 
           const issues = data.issues.nodes;
+          const pageInfo = data.issues.pageInfo;
           return {
-            content: [{ type: 'text', text: JSON.stringify({ issues }, null, 2) }],
-            details: { issues },
+            content: [{ type: 'text', text: JSON.stringify({ issues, pageInfo }, null, 2) }],
+            details: { issues, pageInfo },
           };
         });
       },
@@ -654,7 +661,7 @@ export function issueTools() {
           });
 
           const data = await linearGraphQL<{
-            searchIssues: { nodes: LinearIssue[] };
+            searchIssues: LinearConnection<LinearIssue>;
           }>(
             apiKey,
             `query SearchIssues(
@@ -684,6 +691,12 @@ export function issueTools() {
                 nodes {
                   ${ISSUE_SELECTION}
                 }
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
               }
             }`,
             variables,
@@ -691,9 +704,10 @@ export function issueTools() {
           );
 
           const issues = data.searchIssues.nodes;
+          const pageInfo = data.searchIssues.pageInfo;
           return {
-            content: [{ type: 'text', text: JSON.stringify({ issues }, null, 2) }],
-            details: { issues },
+            content: [{ type: 'text', text: JSON.stringify({ issues, pageInfo }, null, 2) }],
+            details: { issues, pageInfo },
           };
         });
       },

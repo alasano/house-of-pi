@@ -4,6 +4,18 @@ export type LinearGraphQLError = {
   message: string;
 };
 
+export type LinearPageInfo = {
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  startCursor?: string | null;
+  endCursor?: string | null;
+};
+
+export type LinearConnection<T> = {
+  nodes: T[];
+  pageInfo: LinearPageInfo;
+};
+
 export type LinearIssue = {
   id: string;
   identifier: string;

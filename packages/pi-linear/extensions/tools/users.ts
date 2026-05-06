@@ -3,7 +3,7 @@ import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
 import { PaginationParams, FilterParam, SortParam } from '../params';
 import { USER_SELECTION } from '../selections';
-import type { JsonObject } from '../types';
+import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asObjectArray } from '../util';
 import {
   renderLinearGetUserCall,
@@ -40,7 +40,7 @@ export function userTools() {
           });
 
           const data = await linearGraphQL<{
-            users: { nodes: Array<JsonObject> };
+            users: LinearConnection<JsonObject>;
           }>(
             apiKey,
             `query ListUsers(
@@ -68,6 +68,12 @@ export function userTools() {
                 nodes {
                   ${USER_SELECTION}
                 }
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
               }
             }`,
             variables,
@@ -75,9 +81,10 @@ export function userTools() {
           );
 
           const users = data.users.nodes;
+          const pageInfo = data.users.pageInfo;
           return {
-            content: [{ type: 'text', text: JSON.stringify({ users }, null, 2) }],
-            details: { users },
+            content: [{ type: 'text', text: JSON.stringify({ users, pageInfo }, null, 2) }],
+            details: { users, pageInfo },
           };
         });
       },

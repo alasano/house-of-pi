@@ -3,7 +3,7 @@ import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
 import { PaginationParams, FilterParam } from '../params';
 import { TEAM_SELECTION } from '../selections';
-import type { LinearTeam, JsonObject } from '../types';
+import type { LinearTeam, JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject } from '../util';
 import {
   renderLinearGetTeamCall,
@@ -36,7 +36,7 @@ export function teamTools() {
             orderBy: params.orderBy,
           });
 
-          const data = await linearGraphQL<{ teams: { nodes: LinearTeam[] } }>(
+          const data = await linearGraphQL<{ teams: LinearConnection<LinearTeam> }>(
             apiKey,
             `query ListTeams(
               $after: String
@@ -66,6 +66,12 @@ export function teamTools() {
                     }
                   }
                 }
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
               }
             }`,
             variables,
@@ -73,9 +79,10 @@ export function teamTools() {
           );
 
           const teams = data.teams.nodes;
+          const pageInfo = data.teams.pageInfo;
           return {
-            content: [{ type: 'text', text: JSON.stringify({ teams }, null, 2) }],
-            details: { teams },
+            content: [{ type: 'text', text: JSON.stringify({ teams, pageInfo }, null, 2) }],
+            details: { teams, pageInfo },
           };
         });
       },

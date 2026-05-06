@@ -3,7 +3,7 @@ import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL, resolveTeamId } from '../client';
 import { PaginationParams, FilterParam, RawInputParam, TeamConvenienceParams } from '../params';
 import { DOCUMENT_SELECTION } from '../selections';
-import type { JsonObject } from '../types';
+import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asString } from '../util';
 import {
   renderLinearCreateDocumentCall,
@@ -41,7 +41,7 @@ export function documentTools() {
           });
 
           const data = await linearGraphQL<{
-            documents: { nodes: Array<JsonObject> };
+            documents: LinearConnection<JsonObject>;
           }>(
             apiKey,
             `query ListDocuments(
@@ -65,6 +65,12 @@ export function documentTools() {
                 nodes {
                   ${DOCUMENT_SELECTION}
                 }
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
               }
             }`,
             variables,
@@ -72,9 +78,10 @@ export function documentTools() {
           );
 
           const documents = data.documents.nodes;
+          const pageInfo = data.documents.pageInfo;
           return {
-            content: [{ type: 'text', text: JSON.stringify({ documents }, null, 2) }],
-            details: { documents },
+            content: [{ type: 'text', text: JSON.stringify({ documents, pageInfo }, null, 2) }],
+            details: { documents, pageInfo },
           };
         });
       },

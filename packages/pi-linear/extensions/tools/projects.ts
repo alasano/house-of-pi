@@ -3,7 +3,7 @@ import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
 import { PaginationParams, FilterParam, SortParam, RawInputParam } from '../params';
 import { PROJECT_DETAIL_SELECTION, PROJECT_LIST_SELECTION } from '../selections';
-import type { JsonObject } from '../types';
+import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asObjectArray, asString } from '../util';
 import {
   renderLinearArchiveProjectCall,
@@ -44,15 +44,7 @@ export function projectTools() {
           });
 
           const data = await linearGraphQL<{
-            projects: {
-              nodes: Array<JsonObject>;
-              pageInfo: {
-                hasNextPage: boolean;
-                hasPreviousPage: boolean;
-                startCursor?: string | null;
-                endCursor?: string | null;
-              };
-            };
+            projects: LinearConnection<JsonObject>;
           }>(
             apiKey,
             `query ListProjects(

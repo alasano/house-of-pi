@@ -3,7 +3,7 @@ import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
 import { PaginationParams, FilterParam, SortParam, RawInputParam } from '../params';
 import { INITIATIVE_SELECTION } from '../selections';
-import type { JsonObject } from '../types';
+import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asObjectArray, asString } from '../util';
 import {
   renderLinearArchiveInitiativeCall,
@@ -44,7 +44,7 @@ export function initiativeTools() {
           });
 
           const data = await linearGraphQL<{
-            initiatives: { nodes: Array<JsonObject> };
+            initiatives: LinearConnection<JsonObject>;
           }>(
             apiKey,
             `query ListInitiatives(
@@ -70,6 +70,12 @@ export function initiativeTools() {
                 nodes {
                   ${INITIATIVE_SELECTION}
                 }
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
               }
             }`,
             variables,
@@ -77,9 +83,10 @@ export function initiativeTools() {
           );
 
           const initiatives = data.initiatives.nodes;
+          const pageInfo = data.initiatives.pageInfo;
           return {
-            content: [{ type: 'text', text: JSON.stringify({ initiatives }, null, 2) }],
-            details: { initiatives },
+            content: [{ type: 'text', text: JSON.stringify({ initiatives, pageInfo }, null, 2) }],
+            details: { initiatives, pageInfo },
           };
         });
       },

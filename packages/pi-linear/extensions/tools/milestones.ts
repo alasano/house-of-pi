@@ -3,7 +3,7 @@ import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
 import { PaginationParams, FilterParam, RawInputParam } from '../params';
 import { MILESTONE_SELECTION } from '../selections';
-import type { JsonObject } from '../types';
+import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asString, GenericObjectSchema } from '../util';
 import {
   renderLinearMilestoneDeleteCall,
@@ -40,7 +40,7 @@ export function milestoneTools() {
           });
 
           const data = await linearGraphQL<{
-            projectMilestones: { nodes: Array<JsonObject> };
+            projectMilestones: LinearConnection<JsonObject>;
           }>(
             apiKey,
             `query ListMilestones(
@@ -64,6 +64,12 @@ export function milestoneTools() {
                 nodes {
                   ${MILESTONE_SELECTION}
                 }
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
               }
             }`,
             variables,
@@ -71,9 +77,10 @@ export function milestoneTools() {
           );
 
           const milestones = data.projectMilestones.nodes;
+          const pageInfo = data.projectMilestones.pageInfo;
           return {
-            content: [{ type: 'text', text: JSON.stringify({ milestones }, null, 2) }],
-            details: { milestones },
+            content: [{ type: 'text', text: JSON.stringify({ milestones, pageInfo }, null, 2) }],
+            details: { milestones, pageInfo },
           };
         });
       },
