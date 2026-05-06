@@ -1,7 +1,7 @@
 import { defineTool } from '@mariozechner/pi-coding-agent';
 import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
-import { PaginationParams, FilterParam, RawInputParam } from '../params';
+import { PaginationParams, paginationVariables, FilterParam, RawInputParam } from '../params';
 import { PROJECT_LABEL_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asString } from '../util';
@@ -29,13 +29,8 @@ export function projectLabelTools() {
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
-            after: params.after,
-            before: params.before,
+            ...paginationVariables(params, 50),
             filter: asObject(params.filter),
-            first: params.first ?? 50,
-            includeArchived: params.includeArchived,
-            last: params.last,
-            orderBy: params.orderBy,
           });
 
           const data = await linearGraphQL<{

@@ -9,6 +9,7 @@ import {
 } from '../client';
 import {
   PaginationParams,
+  paginationVariables,
   FilterParam,
   SortParam,
   TeamConvenienceParams,
@@ -79,13 +80,8 @@ export function issueTools() {
           );
 
           const variables = compactObject({
-            after: params.after,
-            before: params.before,
+            ...paginationVariables(params, 20),
             filter,
-            first: params.first ?? 20,
-            includeArchived: params.includeArchived,
-            last: params.last,
-            orderBy: params.orderBy,
             sort: asObjectArray(params.sort),
           });
 
@@ -648,16 +644,11 @@ export function issueTools() {
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
+            ...paginationVariables(params, 20),
             term: params.term,
             includeComments: params.includeComments,
             teamId: params.teamId,
-            after: params.after,
-            before: params.before,
             filter: asObject(params.filter),
-            first: params.first ?? 20,
-            includeArchived: params.includeArchived,
-            last: params.last,
-            orderBy: params.orderBy,
           });
 
           const data = await linearGraphQL<{

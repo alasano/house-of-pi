@@ -1,7 +1,7 @@
 import { defineTool } from '@mariozechner/pi-coding-agent';
 import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL, resolveIssueId } from '../client';
-import { PaginationParams } from '../params';
+import { PaginationParams, paginationVariables } from '../params';
 import { ISSUE_RELATION_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
 import { compactObject } from '../util';
@@ -27,14 +27,7 @@ export function issueRelationTools() {
       renderCall: renderLinearIssueRelationListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
-          const variables = compactObject({
-            after: params.after,
-            before: params.before,
-            first: params.first ?? 20,
-            includeArchived: params.includeArchived,
-            last: params.last,
-            orderBy: params.orderBy,
-          });
+          const variables = paginationVariables(params, 20);
 
           const data = await linearGraphQL<{
             issueRelations: LinearConnection<JsonObject>;

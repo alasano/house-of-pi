@@ -1,7 +1,7 @@
 import { defineTool } from '@mariozechner/pi-coding-agent';
 import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
-import { PaginationParams, FilterParam, SortParam } from '../params';
+import { PaginationParams, paginationVariables, FilterParam, SortParam } from '../params';
 import { USER_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asObjectArray } from '../util';
@@ -28,14 +28,9 @@ export function userTools() {
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
-            after: params.after,
-            before: params.before,
+            ...paginationVariables(params, 50),
             filter: asObject(params.filter),
-            first: params.first ?? 50,
-            includeArchived: params.includeArchived,
             includeDisabled: params.includeDisabled,
-            last: params.last,
-            orderBy: params.orderBy,
             sort: asObjectArray(params.sort),
           });
 

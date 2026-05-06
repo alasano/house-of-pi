@@ -1,7 +1,7 @@
 import { defineTool } from '@mariozechner/pi-coding-agent';
 import { Type } from '@sinclair/typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
-import { PaginationParams, FilterParam } from '../params';
+import { PaginationParams, paginationVariables, FilterParam } from '../params';
 import { TEAM_SELECTION } from '../selections';
 import type { LinearTeam, JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject } from '../util';
@@ -27,13 +27,8 @@ export function teamTools() {
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const variables = compactObject({
-            after: params.after,
-            before: params.before,
+            ...paginationVariables(params, 50),
             filter: asObject(params.filter),
-            first: params.first,
-            includeArchived: params.includeArchived,
-            last: params.last,
-            orderBy: params.orderBy,
           });
 
           const data = await linearGraphQL<{ teams: LinearConnection<LinearTeam> }>(

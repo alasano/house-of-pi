@@ -1,5 +1,5 @@
 import { Type } from '@sinclair/typebox';
-import { GenericObjectSchema } from './util';
+import { compactObject, GenericObjectSchema } from './util';
 
 export const PaginationParams = {
   after: Type.Optional(Type.String({ description: 'Pagination cursor.' })),
@@ -25,6 +25,45 @@ export const PaginationParams = {
     }),
   ),
 };
+
+type PaginationVariableParams = {
+  after?: string;
+  before?: string;
+  first?: number;
+  includeArchived?: boolean;
+  last?: number;
+  orderBy?: string;
+};
+
+export function paginationVariables(
+  params: PaginationVariableParams,
+  defaultPageSize: number,
+): Partial<PaginationVariableParams> {
+  const hasForwardPagination = params.after !== undefined || params.first !== undefined;
+  const hasBackwardPagination = params.before !== undefined || params.last !== undefined;
+
+  if (hasForwardPagination && hasBackwardPagination) {
+    throw new Error(
+      'Use either forward pagination (first/after) or backward pagination (last/before), not both.',
+    );
+  }
+
+  if (hasBackwardPagination) {
+    return compactObject({
+      before: params.before,
+      includeArchived: params.includeArchived,
+      last: params.last ?? defaultPageSize,
+      orderBy: params.orderBy,
+    });
+  }
+
+  return compactObject({
+    after: params.after,
+    first: params.first ?? defaultPageSize,
+    includeArchived: params.includeArchived,
+    orderBy: params.orderBy,
+  });
+}
 
 export const SortParam = {
   sort: Type.Optional(Type.Array(GenericObjectSchema, { description: 'Sort input array.' })),
