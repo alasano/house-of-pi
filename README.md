@@ -47,3 +47,13 @@ Load extra configured project, ancestor, global, or absolute context files into 
 ```bash
 pi install npm:@alasano/pi-extra-context
 ```
+
+### [@alasano/pi-forcefeed](packages/pi-forcefeed)
+
+Force-feed complete files into pi conversation context without read-tool truncation.
+
+![pi-forcefeed](packages/pi-forcefeed/assets/screenshot.png)
+
+```bash
+pi install npm:@alasano/pi-forcefeed
+```
