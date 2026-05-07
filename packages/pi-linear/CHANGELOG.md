@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/alasano/house-of-pi/compare/pi-linear-v0.3.0...pi-linear-v0.4.0) (2026-05-07)
+
+
+### Features
+
+* **pi-forcefeed:** add initial pi-forcefeed package ([#11](https://github.com/alasano/house-of-pi/issues/11)) ([d14fac3](https://github.com/alasano/house-of-pi/commit/d14fac305c0fe0a8291e5151790fbb56ecdf3ff9))
+
 ## [0.3.0](https://github.com/alasano/house-of-pi/compare/pi-linear-v0.2.0...pi-linear-v0.3.0) (2026-05-07)
 
 ### Features

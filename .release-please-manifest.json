@@ -1,7 +1,7 @@
 {
   "packages/pi-panels": "0.1.0",
   "packages/pi-mouse": "0.1.0",
-  "packages/pi-linear": "0.3.0",
+  "packages/pi-linear": "0.4.0",
   "packages/pi-extra-context": "0.1.0",
   "packages/pi-forcefeed": "0.0.1"
 }
