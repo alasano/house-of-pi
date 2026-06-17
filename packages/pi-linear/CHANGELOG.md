@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.1](https://github.com/alasano/house-of-pi/compare/pi-linear-v0.3.0...pi-linear-v0.3.1) (2026-06-17)
+
+### Bug Fixes
+
+- **linear:** omit team id for issue documents ([#15](https://github.com/alasano/house-of-pi/issues/15)) ([f0ca5b1](https://github.com/alasano/house-of-pi/commit/f0ca5b1d686a56fa38902c84d1609dd8fd2caa13))
+
 ## [0.3.0](https://github.com/alasano/house-of-pi/compare/pi-linear-v0.2.0...pi-linear-v0.3.0) (2026-05-07)
 
 ### Features
