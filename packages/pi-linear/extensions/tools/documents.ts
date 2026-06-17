@@ -23,6 +23,36 @@ import {
   renderLinearUpdateDocumentCall,
 } from '../renderers/documents';
 
+const DOCUMENT_RELATED_CONTEXT_FIELDS = [
+  'cycleId',
+  'initiativeId',
+  'issueId',
+  'projectId',
+  'releaseId',
+  'resourceFolderId',
+] as const;
+
+type DocumentRelatedContextField = (typeof DOCUMENT_RELATED_CONTEXT_FIELDS)[number];
+
+function hasDocumentRelatedContext(
+  params: Partial<Record<DocumentRelatedContextField, unknown>>,
+  rawInput: JsonObject,
+): boolean {
+  return DOCUMENT_RELATED_CONTEXT_FIELDS.some((field) =>
+    Boolean(asString(params[field]) || asString(rawInput[field])),
+  );
+}
+
+function documentInputBase(rawInput: JsonObject, omitTeamId: boolean): JsonObject {
+  if (!omitTeamId) return rawInput;
+
+  // Linear rejects document inputs with multiple parent/context IDs (for example
+  // issueId + teamId). Treat teamId/teamKey as the document context only when no
+  // more specific relation is provided; issue/project/etc. imply their context.
+  const { teamId: _teamId, ...inputWithoutTeamId } = rawInput;
+  return inputWithoutTeamId;
+}
+
 export function documentTools() {
   return [
     defineTool({
@@ -124,7 +154,7 @@ export function documentTools() {
       name: 'linear_create_document',
       label: 'Linear Create Document',
       description:
-        'Create a document. Supports top-level DocumentCreateInput fields and raw input.',
+        'Create a document. Supports top-level DocumentCreateInput fields and raw input. Use issueId/projectId/etc. for related documents; teamId/teamKey are only for team-scoped documents.',
       parameters: Type.Object({
         color: Type.Optional(Type.String()),
         content: Type.Optional(Type.String()),
@@ -147,9 +177,10 @@ export function documentTools() {
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
-          const rawInputTeamId = asString(rawInput.teamId);
+          const hasRelatedContext = hasDocumentRelatedContext(params, rawInput);
+          const rawInputTeamId = hasRelatedContext ? undefined : asString(rawInput.teamId);
           const teamId =
-            params.teamId || params.teamKey || rawInputTeamId
+            !hasRelatedContext && (params.teamId || params.teamKey || rawInputTeamId)
               ? await resolveTeamId(
                   apiKey,
                   {
@@ -161,7 +192,7 @@ export function documentTools() {
               : undefined;
 
           const input = {
-            ...rawInput,
+            ...documentInputBase(rawInput, hasRelatedContext),
             ...compactObject({
               color: params.color,
               content: params.content,
@@ -218,7 +249,7 @@ export function documentTools() {
       name: 'linear_update_document',
       label: 'Linear Update Document',
       description:
-        'Update a document by id. Supports top-level DocumentUpdateInput fields and raw input.',
+        'Update a document by id. Supports top-level DocumentUpdateInput fields and raw input. Use issueId/projectId/etc. for related documents; teamId/teamKey are only for team-scoped documents.',
       parameters: Type.Object({
         documentId: Type.String(),
         color: Type.Optional(Type.String()),
@@ -243,9 +274,10 @@ export function documentTools() {
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
-          const rawInputTeamId = asString(rawInput.teamId);
+          const hasRelatedContext = hasDocumentRelatedContext(params, rawInput);
+          const rawInputTeamId = hasRelatedContext ? undefined : asString(rawInput.teamId);
           const teamId =
-            params.teamId || params.teamKey || rawInputTeamId
+            !hasRelatedContext && (params.teamId || params.teamKey || rawInputTeamId)
               ? await resolveTeamId(
                   apiKey,
                   {
@@ -257,7 +289,7 @@ export function documentTools() {
               : undefined;
 
           const input = {
-            ...rawInput,
+            ...documentInputBase(rawInput, hasRelatedContext),
             ...compactObject({
               color: params.color,
               content: params.content,
