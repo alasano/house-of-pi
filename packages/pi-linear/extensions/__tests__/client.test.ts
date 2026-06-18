@@ -14,19 +14,10 @@ import {
   type WorkspaceCredentials,
 } from '../client';
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Minimal stub satisfying the ExtensionContext shape needed by resolveApiKey */
 function fakeCtx(hasUI = false) {
   return {
     hasUI,
-    ui: {
-      confirm: vi.fn(),
-      input: vi.fn(),
-      notify: vi.fn(),
-    },
+    ui: { confirm: vi.fn(), input: vi.fn(), notify: vi.fn() },
   } as any;
 }
 
@@ -42,13 +33,9 @@ function credsWith(overrides: Partial<WorkspaceCredentials> = {}): WorkspaceCred
   };
 }
 
-// ---------------------------------------------------------------------------
-// Credential file helpers
-// ---------------------------------------------------------------------------
-
-describe('readCredentials / writeCredentials', () => {
+function useTmpDir() {
+  const tmpDir = `/tmp/pi-linear-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   let originalDir: string | undefined;
-  const tmpDir = '/tmp/pi-linear-test-creds-' + Date.now();
 
   beforeEach(async () => {
     originalDir = process.env.PI_CODING_AGENT_DIR;
@@ -61,6 +48,10 @@ describe('readCredentials / writeCredentials', () => {
     else delete process.env.PI_CODING_AGENT_DIR;
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
+}
+
+describe('readCredentials / writeCredentials', () => {
+  useTmpDir();
 
   it('returns empty credentials when no file exists', async () => {
     const creds = await readCredentials();
@@ -77,30 +68,12 @@ describe('readCredentials / writeCredentials', () => {
   it('sets file permissions to 0o600', async () => {
     await writeCredentials(credsWith());
     const stat = await fs.stat(getCredentialFilePath());
-    // eslint-disable-next-line no-bitwise
     expect(stat.mode & 0o777).toBe(0o600);
   });
 });
 
-// ---------------------------------------------------------------------------
-// Workspace management
-// ---------------------------------------------------------------------------
-
 describe('workspace management', () => {
-  let originalDir: string | undefined;
-  const tmpDir = '/tmp/pi-linear-test-ws-' + Date.now();
-
-  beforeEach(async () => {
-    originalDir = process.env.PI_CODING_AGENT_DIR;
-    process.env.PI_CODING_AGENT_DIR = tmpDir;
-    await fs.mkdir(tmpDir, { recursive: true });
-  });
-
-  afterEach(async () => {
-    if (originalDir !== undefined) process.env.PI_CODING_AGENT_DIR = originalDir;
-    else delete process.env.PI_CODING_AGENT_DIR;
-    await fs.rm(tmpDir, { recursive: true, force: true });
-  });
+  useTmpDir();
 
   it('addWorkspace sets first workspace as active', async () => {
     const creds = await addWorkspace('first', 'key-1');
@@ -158,29 +131,18 @@ describe('workspace management', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// resolveApiKey — precedence
-// ---------------------------------------------------------------------------
-
 describe('resolveApiKey precedence', () => {
-  let originalDir: string | undefined;
+  useTmpDir();
   let originalEnv: string | undefined;
-  const tmpDir = '/tmp/pi-linear-test-resolve-' + Date.now();
 
-  beforeEach(async () => {
-    originalDir = process.env.PI_CODING_AGENT_DIR;
+  beforeEach(() => {
     originalEnv = process.env[ENV_KEY];
-    process.env.PI_CODING_AGENT_DIR = tmpDir;
     delete process.env[ENV_KEY];
-    await fs.mkdir(tmpDir, { recursive: true });
   });
 
-  afterEach(async () => {
-    if (originalDir !== undefined) process.env.PI_CODING_AGENT_DIR = originalDir;
-    else delete process.env.PI_CODING_AGENT_DIR;
+  afterEach(() => {
     if (originalEnv !== undefined) process.env[ENV_KEY] = originalEnv;
     else delete process.env[ENV_KEY];
-    await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
   it('env var takes precedence over credentials.json', async () => {
