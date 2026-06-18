@@ -112,12 +112,12 @@ export async function resolveApiKey(
   ctx: ExtensionContext,
   options?: { promptIfMissing?: boolean },
 ): Promise<{ apiKey?: string; source: 'env' | 'workspace' | 'none' }> {
+  const envApiKey = asString(process.env.LINEAR_API_KEY);
+  if (envApiKey) return { apiKey: envApiKey, source: 'env' };
+
   const creds = await readCredentials();
   const workspaceKey = getActiveApiKey(creds);
   if (workspaceKey) return { apiKey: workspaceKey, source: 'workspace' };
-
-  const envApiKey = asString(process.env.LINEAR_API_KEY);
-  if (envApiKey) return { apiKey: envApiKey, source: 'env' };
 
   const promptIfMissing = options?.promptIfMissing ?? true;
   if (promptIfMissing && ctx.hasUI) {

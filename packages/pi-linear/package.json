@@ -13,6 +13,7 @@
   },
   "type": "module",
   "scripts": {
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "pi": {
