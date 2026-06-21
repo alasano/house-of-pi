@@ -68,6 +68,18 @@ Load extra configured project, ancestor, global, or absolute context files into 
 pi install npm:@alasano/pi-extra-context
 ```
 
+### [@alasano/pi-read-summary](packages/pi-read-summary)
+
+Displays consecutive read tool calls in one summary block.
+
+<p align="center">
+  <img src="packages/pi-read-summary/assets/screenshot.png" alt="pi-read-summary" />
+</p>
+
+```bash
+pi install npm:@alasano/pi-read-summary
+```
+
 ### [@alasano/pi-forcefeed](packages/pi-forcefeed)
 
 Force-feed complete files into pi conversation context without read-tool truncation.
