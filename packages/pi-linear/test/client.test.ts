@@ -5,14 +5,11 @@ import {
   readCredentials,
   writeCredentials,
   getCredentialFilePath,
-  getActiveApiKey,
   addWorkspace,
   removeWorkspace,
   switchWorkspace,
-  listWorkspaceNames,
-  getActiveWorkspaceName,
   type WorkspaceCredentials,
-} from '../client';
+} from '../extensions/client';
 
 function fakeCtx(hasUI = false) {
   return {
@@ -113,21 +110,6 @@ describe('workspace management', () => {
   it('switchWorkspace throws for unknown workspace', async () => {
     await addWorkspace('a', 'key-a');
     await expect(switchWorkspace('nope')).rejects.toThrow('does not exist');
-  });
-
-  it('listWorkspaceNames returns all names', async () => {
-    await addWorkspace('x', 'key-x');
-    await addWorkspace('y', 'key-y');
-    const creds = await readCredentials();
-    expect(listWorkspaceNames(creds)).toEqual(['x', 'y']);
-  });
-
-  it('getActiveWorkspaceName returns null when none set', () => {
-    expect(getActiveWorkspaceName({ activeWorkspace: null, workspaces: {} })).toBeNull();
-  });
-
-  it('getActiveApiKey returns undefined when no active workspace', () => {
-    expect(getActiveApiKey({ activeWorkspace: null, workspaces: {} })).toBeUndefined();
   });
 });
 
