@@ -3,6 +3,9 @@
   "release-type": "node",
   "include-component-in-tag": true,
   "bump-minor-pre-major": true,
+  "pull-request-title-pattern": "chore(release): release${component} ${version}",
+  "pull-request-header": "🏠 of π release",
+  "pull-request-footer": "[house-of-pi](https://github.com/alasano/house-of-pi)",
   "separate-pull-requests": true,
   "changelog-sections": [
     {
