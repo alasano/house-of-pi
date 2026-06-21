@@ -1,6 +1,6 @@
 {
   "name": "@alasano/pi-panels",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Responsive status panels for pi - git info, LLM context usage, and Spotify now-playing below the editor",
   "keywords": [
     "pi-package"
