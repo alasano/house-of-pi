@@ -1,6 +1,6 @@
 {
   "name": "@alasano/pi-forcefeed",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Force-feed complete files into pi conversation context without read-tool truncation",
   "keywords": [
     "pi-package"
