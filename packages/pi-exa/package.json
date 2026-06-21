@@ -1,6 +1,6 @@
 {
   "name": "@alasano/pi-exa",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Exa-powered web search, content retrieval, answers, and agentic search tools for pi",
   "keywords": [
     "pi-package"
