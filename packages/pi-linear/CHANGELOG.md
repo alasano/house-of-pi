@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/alasano/house-of-pi/compare/pi-linear-v0.3.1...pi-linear-v0.4.0) (2026-06-21)
+
+
+### Features
+
+* **pi-linear:** add configurable auth precedence for LINEAR_API_KEY ([3610aac](https://github.com/alasano/house-of-pi/commit/3610aac42cd291a8ede4a35ea8eb09d57c689ee4))
+
 ## [0.3.1](https://github.com/alasano/house-of-pi/compare/pi-linear-v0.3.0...pi-linear-v0.3.1) (2026-06-17)
 
 ### Bug Fixes
