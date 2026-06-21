@@ -65,6 +65,7 @@
     "packages/pi-mouse": {},
     "packages/pi-linear": {},
     "packages/pi-extra-context": {},
-    "packages/pi-forcefeed": {}
+    "packages/pi-forcefeed": {},
+    "packages/pi-exa": {}
   }
 }
