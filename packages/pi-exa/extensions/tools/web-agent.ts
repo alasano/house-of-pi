@@ -1,6 +1,6 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { AgentToolUpdateCallback } from '@earendil-works/pi-coding-agent';
-import type { Static } from '@sinclair/typebox';
+import type { Static } from 'typebox';
 import {
   createAgentRun,
   getAgentRun,

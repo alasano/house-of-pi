@@ -1,4 +1,4 @@
-import { visibleWidth } from '@mariozechner/pi-tui';
+import { visibleWidth } from '@earendil-works/pi-tui';
 
 export { visibleWidth };
 

@@ -1,4 +1,4 @@
-import { Type } from '@sinclair/typebox';
+import { Type } from 'typebox';
 import { compactObject, GenericObjectSchema } from './util';
 
 export const PaginationParams = {

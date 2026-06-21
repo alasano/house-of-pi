@@ -6,7 +6,7 @@ import {
   getAgentDir,
   type ExtensionAPI,
   type ExtensionContext,
-} from '@mariozechner/pi-coding-agent';
+} from '@earendil-works/pi-coding-agent';
 
 const DEFAULT_MAX_BYTES_PER_FILE = 50_000;
 const DEFAULT_MAX_TOTAL_BYTES = 200_000;

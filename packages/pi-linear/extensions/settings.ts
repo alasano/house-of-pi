@@ -1,8 +1,8 @@
 import { promises as fs } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { ExtensionAPI, ExtensionContext } from '@mariozechner/pi-coding-agent';
-import { getAgentDir, getSettingsListTheme } from '@mariozechner/pi-coding-agent';
-import { type SettingItem, SettingsList } from '@mariozechner/pi-tui';
+import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent';
+import { getAgentDir, getSettingsListTheme } from '@earendil-works/pi-coding-agent';
+import { type SettingItem, SettingsList } from '@earendil-works/pi-tui';
 import { invalidateLinearResultRenderers, setDefaultJsonView } from './renderers/state';
 
 const SETTINGS_PATH = join(getAgentDir(), 'state', 'extensions', 'linear', 'tool-settings.json');

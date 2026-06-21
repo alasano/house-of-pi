@@ -2,7 +2,7 @@ import {
   CustomEditor,
   type ExtensionAPI,
   type ExtensionContext,
-} from '@mariozechner/pi-coding-agent';
+} from '@earendil-works/pi-coding-agent';
 
 const DEBOUNCE_MS = 420;
 const TICK_MS = 65;
@@ -164,7 +164,6 @@ export default function cursorMouseExtension(pi: ExtensionAPI) {
   });
 
   pi.on('session_start', async (_event, ctx) => applyEditor(ctx));
-  pi.on('session_switch', async (_event, ctx) => applyEditor(ctx));
   pi.on('session_shutdown', async (_event, ctx) => {
     ctx.ui.setEditorComponent(undefined);
   });

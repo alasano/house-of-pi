@@ -1,5 +1,5 @@
-import { defineTool } from '@mariozechner/pi-coding-agent';
-import { Type } from '@sinclair/typebox';
+import { defineTool } from '@earendil-works/pi-coding-agent';
+import { Type } from 'typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
 import { PaginationParams, paginationVariables, FilterParam } from '../params';
 import { WORKFLOW_STATE_SELECTION } from '../selections';

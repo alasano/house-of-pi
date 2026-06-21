@@ -1,5 +1,5 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
-import type { Static } from '@sinclair/typebox';
+import type { Static } from 'typebox';
 import { exaPost } from '../client';
 import { formatSearchResponse } from '../format';
 import { truncateToolOutput } from '../output';

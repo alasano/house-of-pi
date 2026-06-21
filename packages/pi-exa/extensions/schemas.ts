@@ -1,4 +1,4 @@
-import { Type } from '@sinclair/typebox';
+import { Type } from 'typebox';
 
 const JsonObjectSchema = Type.Object({}, { additionalProperties: true });
 
