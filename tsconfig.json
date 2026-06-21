@@ -17,7 +17,8 @@
     { "path": "packages/pi-mouse" },
     { "path": "packages/pi-linear" },
     { "path": "packages/pi-extra-context" },
-    { "path": "packages/pi-forcefeed" }
+    { "path": "packages/pi-forcefeed" },
+    { "path": "packages/pi-exa" }
   ],
   "exclude": ["node_modules", "dist"]
 }
