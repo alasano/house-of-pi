@@ -3,7 +3,7 @@
   "packages/pi-mouse": "0.1.1",
   "packages/pi-linear": "0.4.1",
   "packages/pi-extra-context": "0.1.1",
-  "packages/pi-read-summary": "0.0.1",
+  "packages/pi-read-summary": "0.1.0",
   "packages/pi-forcefeed": "0.1.1",
   "packages/pi-exa": "0.1.1"
 }
