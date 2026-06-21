@@ -1,6 +1,6 @@
 {
   "name": "@alasano/pi-linear",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Linear integration for pi with 55+ tools, multi-workspace auth, and per-tool settings",
   "keywords": [
     "pi-package"
