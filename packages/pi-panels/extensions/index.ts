@@ -164,6 +164,7 @@ export default function statusPanelsExtension(pi: ExtensionAPI) {
   let timer: ReturnType<typeof setInterval> | null = null;
   let config = loadConfig();
   let fetchingSpotify = false;
+  let lifecycleGeneration = 0;
   let lastGitRefreshAt = 0;
   let lastSpotifyFetchAt = 0;
   let gradientPhase = 0;
@@ -188,9 +189,37 @@ export default function statusPanelsExtension(pi: ExtensionAPI) {
     return enabled ? '[x]' : '[ ]';
   }
 
+  function isStaleExtensionContextError(error: unknown): boolean {
+    return (
+      error instanceof Error &&
+      error.message.includes('This extension ctx is stale after session replacement or reload')
+    );
+  }
+
+  function isActiveRun(ctx: ExtensionContext, generation: number): boolean {
+    return config.enabled && ctxRef === ctx && lifecycleGeneration === generation;
+  }
+
+  function hasUsableUI(ctx?: ExtensionContext | null): ctx is ExtensionContext {
+    if (!ctx) return false;
+    try {
+      return ctx.hasUI;
+    } catch (error) {
+      if (!isStaleExtensionContextError(error)) {
+        console.error('Status panels UI check failed:', error);
+      }
+      return false;
+    }
+  }
+
+  function handleTickError(error: unknown) {
+    if (isStaleExtensionContextError(error)) return;
+    console.error('Status panels tick failed:', error);
+  }
+
   function persistConfig(ctx?: ExtensionContext): boolean {
     const ok = saveConfig(config);
-    if (!ok && ctx?.hasUI) {
+    if (!ok && hasUsableUI(ctx)) {
       ctx.ui.notify('Failed to save status panels preferences', 'error');
     }
     return ok;
@@ -208,7 +237,7 @@ export default function statusPanelsExtension(pi: ExtensionAPI) {
       return;
     }
 
-    stop();
+    stop(ctxRef);
     start();
   }
 
@@ -233,10 +262,16 @@ export default function statusPanelsExtension(pi: ExtensionAPI) {
     applyConfig(ctx);
   }
 
-  async function runGit(args: string[]): Promise<string | undefined> {
+  async function runGit(
+    args: string[],
+    ctx: ExtensionContext,
+    generation: number,
+  ): Promise<string | undefined> {
+    if (!isActiveRun(ctx, generation)) return undefined;
+
     try {
       const result = await pi.exec('git', args, { timeout: 2000 });
-      if (result.code !== 0) return undefined;
+      if (!isActiveRun(ctx, generation) || result.code !== 0) return undefined;
       const value = result.stdout.trim();
       return value || undefined;
     } catch {
@@ -244,26 +279,25 @@ export default function statusPanelsExtension(pi: ExtensionAPI) {
     }
   }
 
-  async function readGitInfo(): Promise<GitInfo> {
-    const inside = await runGit(['rev-parse', '--is-inside-work-tree']);
+  async function readGitInfo(ctx: ExtensionContext, generation: number): Promise<GitInfo> {
+    const inside = await runGit(['rev-parse', '--is-inside-work-tree'], ctx, generation);
     if (inside !== 'true') {
       return EMPTY_GIT_STATE;
     }
 
-    const topLevel = (await runGit(['rev-parse', '--show-toplevel'])) || '-';
+    const topLevel = (await runGit(['rev-parse', '--show-toplevel'], ctx, generation)) || '-';
     const worktree = topLevel.split('/').filter(Boolean).pop() || topLevel;
 
     const branch =
-      (await runGit(['branch', '--show-current'])) ||
-      (await runGit(['rev-parse', '--short', 'HEAD'])) ||
+      (await runGit(['branch', '--show-current'], ctx, generation)) ||
+      (await runGit(['rev-parse', '--short', 'HEAD'], ctx, generation)) ||
       '(detached)';
 
-    const upstream = await runGit([
-      'rev-parse',
-      '--abbrev-ref',
-      '--symbolic-full-name',
-      '@{upstream}',
-    ]);
+    const upstream = await runGit(
+      ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'],
+      ctx,
+      generation,
+    );
 
     if (!upstream) {
       return {
@@ -276,7 +310,11 @@ export default function statusPanelsExtension(pi: ExtensionAPI) {
       };
     }
 
-    const countsRaw = await runGit(['rev-list', '--left-right', '--count', `${upstream}...HEAD`]);
+    const countsRaw = await runGit(
+      ['rev-list', '--left-right', '--count', `${upstream}...HEAD`],
+      ctx,
+      generation,
+    );
     const { behind, ahead } = parseCount(countsRaw || '0 0');
 
     return {
@@ -303,7 +341,7 @@ export default function statusPanelsExtension(pi: ExtensionAPI) {
     };
   }
 
-  async function readSpotify(): Promise<SpotifyInfo> {
+  async function readSpotify(ctx: ExtensionContext, generation: number): Promise<SpotifyInfo> {
     const script = `
 if application "Spotify" is running then
   tell application "Spotify"
@@ -322,9 +360,11 @@ else
 end if
 `.trim();
 
+    if (!isActiveRun(ctx, generation)) return emptySpotifyState();
+
     try {
       const result = await pi.exec('osascript', ['-e', script], { timeout: 2000 });
-      if (result.code !== 0) {
+      if (!isActiveRun(ctx, generation) || result.code !== 0) {
         return emptySpotifyState();
       }
 
@@ -393,10 +433,10 @@ end if
     return [...first!.lines, ...second!.lines];
   }
 
-  function renderPanels() {
-    if (!config.enabled || !ctxRef?.hasUI) return;
+  function renderPanels(ctx: ExtensionContext, generation: number) {
+    if (!isActiveRun(ctx, generation) || !hasUsableUI(ctx)) return;
 
-    ctxRef.ui.setWidget(
+    ctx.ui.setWidget(
       WIDGET_ID,
       (_tui, _theme) => ({
         invalidate() {},
@@ -450,61 +490,101 @@ end if
     );
   }
 
-  async function refreshCore(force = false) {
-    if (!ctxRef) return;
+  async function refreshCore(
+    ctx: ExtensionContext,
+    generation: number,
+    force = false,
+  ): Promise<boolean> {
+    if (!isActiveRun(ctx, generation)) return false;
     const now = Date.now();
-    if (!force && now - lastGitRefreshAt < REFRESH_MS) return;
+    if (!force && now - lastGitRefreshAt < REFRESH_MS) return true;
 
-    gitState = await readGitInfo();
-    infoState = readInfoState(ctxRef);
+    const nextGitState = await readGitInfo(ctx, generation);
+    if (!isActiveRun(ctx, generation)) return false;
+
+    gitState = nextGitState;
+    infoState = readInfoState(ctx);
     lastGitRefreshAt = now;
+    return true;
   }
 
-  async function refreshSpotify(force = false) {
-    if (!ctxRef || !isPanelEnabled('nowPlaying') || fetchingSpotify) return;
+  async function refreshSpotify(
+    ctx: ExtensionContext,
+    generation: number,
+    force = false,
+  ): Promise<boolean> {
+    if (!isActiveRun(ctx, generation)) return false;
+    if (!isPanelEnabled('nowPlaying') || fetchingSpotify) return true;
+
     const now = Date.now();
     const interval =
       spotifyState.state === 'playing' ? NOW_PLAYING_FETCH_PLAYING_MS : NOW_PLAYING_FETCH_IDLE_MS;
 
-    if (!force && now - lastSpotifyFetchAt < interval) return;
+    if (!force && now - lastSpotifyFetchAt < interval) return true;
 
     fetchingSpotify = true;
-    spotifyState = await readSpotify();
-    fetchingSpotify = false;
-    lastSpotifyFetchAt = now;
+    try {
+      const nextSpotifyState = await readSpotify(ctx, generation);
+      if (!isActiveRun(ctx, generation)) return false;
+
+      spotifyState = nextSpotifyState;
+      lastSpotifyFetchAt = now;
+      return true;
+    } finally {
+      fetchingSpotify = false;
+    }
   }
 
-  async function tick(forceCore = false, forceSpotify = false) {
-    if (!config.enabled || !ctxRef?.hasUI) return;
+  async function tick(
+    ctx: ExtensionContext,
+    generation: number,
+    forceCore = false,
+    forceSpotify = false,
+  ) {
+    if (!isActiveRun(ctx, generation) || !hasUsableUI(ctx)) return;
 
     gradientTick = (gradientTick + 1) % 2;
     if (gradientTick === 0) {
       gradientPhase = (gradientPhase + 1) % 2;
     }
 
-    await refreshCore(forceCore);
-    await refreshSpotify(forceSpotify);
-    renderPanels();
+    const coreRefreshed = await refreshCore(ctx, generation, forceCore);
+    if (!coreRefreshed) return;
+
+    const spotifyRefreshed = await refreshSpotify(ctx, generation, forceSpotify);
+    if (!spotifyRefreshed || !isActiveRun(ctx, generation)) return;
+
+    renderPanels(ctx, generation);
+  }
+
+  function scheduleTick(forceCore = false, forceSpotify = false) {
+    const ctx = ctxRef;
+    const generation = lifecycleGeneration;
+    if (!ctx || !isActiveRun(ctx, generation) || !hasUsableUI(ctx)) return;
+
+    void tick(ctx, generation, forceCore, forceSpotify).catch(handleTickError);
   }
 
   function start() {
-    if (!config.enabled || !ctxRef?.hasUI) return;
+    if (!config.enabled || !hasUsableUI(ctxRef)) return;
     if (timer) return;
 
-    void tick(true, true);
+    scheduleTick(true, true);
     timer = setInterval(() => {
-      void tick(false, false);
+      scheduleTick(false, false);
     }, TICK_MS);
   }
 
-  function stop() {
+  function stop(ctx: ExtensionContext | null = ctxRef) {
+    lifecycleGeneration += 1;
+
     if (timer) {
       clearInterval(timer);
       timer = null;
     }
 
-    if (ctxRef?.hasUI) {
-      ctxRef.ui.setWidget(WIDGET_ID, undefined);
+    if (hasUsableUI(ctx)) {
+      ctx.ui.setWidget(WIDGET_ID, undefined);
     }
   }
 
@@ -645,18 +725,19 @@ end if
   pi.on('turn_end', async (_event, ctx) => {
     ctxRef = ctx;
     if (!config.enabled) return;
-    void tick(true, true);
+    scheduleTick(true, true);
   });
 
   pi.on('model_select', async (_event, ctx) => {
     ctxRef = ctx;
     if (!config.enabled) return;
+    const generation = lifecycleGeneration;
     infoState = readInfoState(ctx);
-    renderPanels();
+    renderPanels(ctx, generation);
   });
 
   pi.on('session_shutdown', async (_event, ctx) => {
-    ctxRef = ctx;
-    stop();
+    stop(ctx);
+    ctxRef = null;
   });
 }
