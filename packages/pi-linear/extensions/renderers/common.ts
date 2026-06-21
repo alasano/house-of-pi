@@ -3,8 +3,8 @@ import {
   type AgentToolResult,
   type Theme,
   type ToolRenderResultOptions,
-} from '@mariozechner/pi-coding-agent';
-import { Text, truncateToWidth, visibleWidth } from '@mariozechner/pi-tui';
+} from '@earendil-works/pi-coding-agent';
+import { Text, truncateToWidth, visibleWidth } from '@earendil-works/pi-tui';
 import {
   getDefaultJsonView,
   registerLinearResultRenderer,

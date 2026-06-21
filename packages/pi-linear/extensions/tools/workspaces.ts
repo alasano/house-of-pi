@@ -1,5 +1,5 @@
-import { defineTool } from '@mariozechner/pi-coding-agent';
-import { Type } from '@sinclair/typebox';
+import { defineTool } from '@earendil-works/pi-coding-agent';
+import { Type } from 'typebox';
 import { switchWorkspace, type WorkspaceCredentials } from '../client';
 import {
   renderLinearSwitchWorkspaceCall,

@@ -1,5 +1,5 @@
 import { GREEN_DARK_FG, GREEN_FG } from './utils';
-import { truncateToWidth } from '@mariozechner/pi-tui';
+import { truncateToWidth } from '@earendil-works/pi-tui';
 import {
   computePanelWidths,
   framePanelBody,

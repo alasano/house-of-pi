@@ -28,12 +28,13 @@
     "README.md"
   ],
   "peerDependencies": {
-    "@mariozechner/pi-ai": "*",
-    "@mariozechner/pi-coding-agent": "*",
-    "@mariozechner/pi-tui": "*",
-    "@sinclair/typebox": "*"
+    "@earendil-works/pi-coding-agent": ">=0.79.9",
+    "@earendil-works/pi-tui": ">=0.79.9",
+    "typebox": ">=1.1.38"
   },
   "devDependencies": {
-    "@mariozechner/pi-coding-agent": "^0.65.0"
+    "@earendil-works/pi-coding-agent": "^0.79.9",
+    "@earendil-works/pi-tui": "^0.79.9",
+    "typebox": "^1.1.38"
   }
 }

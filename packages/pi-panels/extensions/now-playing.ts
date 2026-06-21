@@ -1,4 +1,4 @@
-import { truncateToWidth } from '@mariozechner/pi-tui';
+import { truncateToWidth } from '@earendil-works/pi-tui';
 import { clamp, GREEN_DARK_FG, GREEN_FG, visibleWidth } from './utils';
 import {
   computePanelWidths,

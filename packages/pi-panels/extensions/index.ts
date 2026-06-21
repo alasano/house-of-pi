@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { ExtensionAPI, ExtensionContext } from '@mariozechner/pi-coding-agent';
-import { getAgentDir, getSettingsListTheme } from '@mariozechner/pi-coding-agent';
+import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent';
+import { getAgentDir, getSettingsListTheme } from '@earendil-works/pi-coding-agent';
 import {
   decodeKittyPrintable,
   matchesKey,
@@ -9,7 +9,7 @@ import {
   type SettingItem,
   SettingsList,
   truncateToWidth,
-} from '@mariozechner/pi-tui';
+} from '@earendil-works/pi-tui';
 import { buildGitPanel, EMPTY_GIT_STATE, type GitInfo } from './git';
 import { buildInfoPanel, type InfoSnapshot } from './info';
 import { framePanelBody } from './panel';
@@ -638,11 +638,6 @@ end if
   });
 
   pi.on('session_start', async (_event, ctx) => {
-    config = loadConfig();
-    applyConfig(ctx);
-  });
-
-  pi.on('session_switch', async (_event, ctx) => {
     config = loadConfig();
     applyConfig(ctx);
   });

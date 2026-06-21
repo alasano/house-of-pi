@@ -1,4 +1,4 @@
-import { truncateToWidth } from '@mariozechner/pi-tui';
+import { truncateToWidth } from '@earendil-works/pi-tui';
 import {
   GREEN_DARK_FG,
   GREEN_FG,
