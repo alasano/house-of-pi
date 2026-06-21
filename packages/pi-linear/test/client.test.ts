@@ -8,6 +8,7 @@ import {
   addWorkspace,
   removeWorkspace,
   switchWorkspace,
+  setAuthPreference,
   type WorkspaceCredentials,
 } from '../extensions/client';
 
@@ -25,6 +26,7 @@ const ENV_VAR_KEY = 'lin_api_env_var_key';
 function credsWith(overrides: Partial<WorkspaceCredentials> = {}): WorkspaceCredentials {
   return {
     activeWorkspace: 'my-workspace',
+    authPreference: 'workspace',
     workspaces: { 'my-workspace': { apiKey: WORKSPACE_KEY } },
     ...overrides,
   };
@@ -52,7 +54,7 @@ describe('readCredentials / writeCredentials', () => {
 
   it('returns empty credentials when no file exists', async () => {
     const creds = await readCredentials();
-    expect(creds).toEqual({ activeWorkspace: null, workspaces: {} });
+    expect(creds).toEqual({ activeWorkspace: null, authPreference: 'workspace', workspaces: {} });
   });
 
   it('round-trips credentials through write then read', async () => {
@@ -60,6 +62,12 @@ describe('readCredentials / writeCredentials', () => {
     await writeCredentials(input);
     const output = await readCredentials();
     expect(output).toEqual(input);
+  });
+
+  it('persists auth preference', async () => {
+    await setAuthPreference('env');
+    const creds = await readCredentials();
+    expect(creds.authPreference).toBe('env');
   });
 
   it('sets file permissions to 0o600', async () => {
@@ -107,6 +115,13 @@ describe('workspace management', () => {
     expect(creds.activeWorkspace).toBe('b');
   });
 
+  it('switchWorkspace sets auth preference back to workspace', async () => {
+    await addWorkspace('a', 'key-a');
+    await setAuthPreference('env');
+    const creds = await switchWorkspace('a');
+    expect(creds.authPreference).toBe('workspace');
+  });
+
   it('switchWorkspace throws for unknown workspace', async () => {
     await addWorkspace('a', 'key-a');
     await expect(switchWorkspace('nope')).rejects.toThrow('does not exist');
@@ -127,31 +142,39 @@ describe('resolveApiKey precedence', () => {
     else delete process.env[ENV_KEY];
   });
 
-  it('env var takes precedence over credentials.json', async () => {
+  it('prefers credentials.json over env var by default', async () => {
     await writeCredentials(credsWith());
+    process.env[ENV_KEY] = ENV_VAR_KEY;
+
+    const result = await resolveApiKey(fakeCtx(), { promptIfMissing: false });
+    expect(result).toEqual({ apiKey: WORKSPACE_KEY, source: 'workspace' });
+  });
+
+  it('uses env var first when auth preference is env', async () => {
+    await writeCredentials(credsWith({ authPreference: 'env' }));
     process.env[ENV_KEY] = ENV_VAR_KEY;
 
     const result = await resolveApiKey(fakeCtx(), { promptIfMissing: false });
     expect(result).toEqual({ apiKey: ENV_VAR_KEY, source: 'env' });
   });
 
-  it('falls back to credentials.json when env var is not set', async () => {
-    await writeCredentials(credsWith());
+  it('falls back to credentials.json when env is preferred but not set', async () => {
+    await writeCredentials(credsWith({ authPreference: 'env' }));
 
     const result = await resolveApiKey(fakeCtx(), { promptIfMissing: false });
     expect(result).toEqual({ apiKey: WORKSPACE_KEY, source: 'workspace' });
   });
 
-  it('falls back to credentials.json when env var is empty string', async () => {
-    await writeCredentials(credsWith());
+  it('falls back to credentials.json when preferred env var is empty string', async () => {
+    await writeCredentials(credsWith({ authPreference: 'env' }));
     process.env[ENV_KEY] = '';
 
     const result = await resolveApiKey(fakeCtx(), { promptIfMissing: false });
     expect(result).toEqual({ apiKey: WORKSPACE_KEY, source: 'workspace' });
   });
 
-  it('falls back to credentials.json when env var is whitespace', async () => {
-    await writeCredentials(credsWith());
+  it('falls back to credentials.json when preferred env var is whitespace', async () => {
+    await writeCredentials(credsWith({ authPreference: 'env' }));
     process.env[ENV_KEY] = '   ';
 
     const result = await resolveApiKey(fakeCtx(), { promptIfMissing: false });

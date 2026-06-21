@@ -34,27 +34,34 @@ pi install npm:@alasano/pi-linear
 
 ## Authentication
 
-The extension auto-detects the `LINEAR_API_KEY` environment variable if set globally. No setup needed in that case.
+The extension can use either stored workspaces or the `LINEAR_API_KEY` environment variable. Stored workspaces are preferred by default so multi-account switching keeps working even if `LINEAR_API_KEY` is set globally.
 
-For multi-workspace support or if you don't have the env var, use the `/linear-auth` command:
+Use the `/linear-auth` command to manage workspaces and choose the auth preference:
 
-| Command                      | Description                                              |
-| ---------------------------- | -------------------------------------------------------- |
-| `/linear-auth add <name>`    | Add a workspace with an API key (prompts for key)        |
-| `/linear-auth remove <name>` | Remove a workspace (shows selector if name omitted)      |
-| `/linear-auth switch <name>` | Switch active workspace (shows selector if name omitted) |
-| `/linear-auth status`        | Show current auth source and configured workspaces       |
-| `/linear-auth`               | Same as status                                           |
+| Command                              | Description                                                          |
+| ------------------------------------ | -------------------------------------------------------------------- |
+| `/linear-auth add <name>`            | Add a workspace with an API key (prompts for key)                    |
+| `/linear-auth remove <name>`         | Remove a workspace (shows selector if name omitted)                  |
+| `/linear-auth switch <name>`         | Switch active workspace and prefer stored workspaces                 |
+| `/linear-auth prefer workspace\|env` | Choose whether stored workspaces or `LINEAR_API_KEY` are tried first |
+| `/linear-auth status`                | Show auth preference, active source, and configured workspaces       |
+| `/linear-auth`                       | Same as status                                                       |
 
 When you add your first workspace, it becomes active automatically. Adding a second workspace prompts you to switch. After a `/reload` with two or more workspaces configured, the agent gets a `linear_switch_workspace` tool and can switch between them when asked.
 
-Auth resolution order:
+Default auth resolution order (`/linear-auth prefer workspace`):
 
 1. Active stored workspace (if any workspaces are configured)
-2. `LINEAR_API_KEY` environment variable (fallback when no workspaces configured)
+2. `LINEAR_API_KEY` environment variable (fallback when no workspace is active)
 3. Interactive prompt (asks you to set up a key)
 
-Credentials are stored at `~/.pi/agent/state/extensions/linear/credentials.json`.
+Environment auth resolution order (`/linear-auth prefer env`):
+
+1. `LINEAR_API_KEY` environment variable
+2. Active stored workspace (fallback when `LINEAR_API_KEY` is not set)
+3. Interactive prompt (asks you to set up a key)
+
+Credentials and auth preference are stored at `~/.pi/agent/extensions/linear/credentials.json`.
 
 ## Tool settings
 
