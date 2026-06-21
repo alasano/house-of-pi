@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/alasano/house-of-pi/compare/pi-panels-v0.1.1...pi-panels-v0.1.2) (2026-06-21)
+
+
+### Bug Fixes
+
+* **pi-panels:** guard status ticks during session replacement ([#29](https://github.com/alasano/house-of-pi/issues/29)) ([99442e2](https://github.com/alasano/house-of-pi/commit/99442e2fe5931f1993b4d5641f1a33c6ef9d04e3))
+
 ## [0.1.1](https://github.com/alasano/house-of-pi/compare/pi-panels-v0.1.0...pi-panels-v0.1.1) (2026-06-21)
 
 
