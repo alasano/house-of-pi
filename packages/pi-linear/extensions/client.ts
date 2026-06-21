@@ -9,13 +9,20 @@ import { ISSUE_SELECTION } from './selections';
 const LINEAR_GRAPHQL_ENDPOINT = 'https://api.linear.app/graphql';
 const IDENTIFIER_PATTERN = /^([A-Z][A-Z0-9]*)-(\d+)$/i;
 
+export type AuthPreference = 'workspace' | 'env';
+
 export type WorkspaceCredentials = {
   activeWorkspace: string | null;
+  authPreference: AuthPreference;
   workspaces: Record<string, { apiKey: string }>;
 };
 
+function normalizeAuthPreference(value: unknown): AuthPreference {
+  return value === 'env' ? 'env' : 'workspace';
+}
+
 function emptyCredentials(): WorkspaceCredentials {
-  return { activeWorkspace: null, workspaces: {} };
+  return { activeWorkspace: null, authPreference: 'workspace', workspaces: {} };
 }
 
 export function getCredentialFilePath() {
@@ -38,6 +45,7 @@ export async function readCredentials(): Promise<WorkspaceCredentials> {
     }
     const activeWorkspace =
       typeof parsed.activeWorkspace === 'string' ? parsed.activeWorkspace : null;
+    const authPreference = normalizeAuthPreference(parsed.authPreference);
     const workspaces: Record<string, { apiKey: string }> = {};
     for (const [name, entry] of Object.entries(parsed.workspaces)) {
       if (
@@ -49,7 +57,7 @@ export async function readCredentials(): Promise<WorkspaceCredentials> {
         workspaces[name] = { apiKey: (entry as { apiKey: string }).apiKey };
       }
     }
-    return { activeWorkspace, workspaces };
+    return { activeWorkspace, authPreference, workspaces };
   } catch {
     return emptyCredentials();
   }
@@ -96,6 +104,14 @@ export async function switchWorkspace(name: string): Promise<WorkspaceCredential
     throw new Error(`Workspace "${name}" does not exist.`);
   }
   creds.activeWorkspace = name;
+  creds.authPreference = 'workspace';
+  await writeCredentials(creds);
+  return creds;
+}
+
+export async function setAuthPreference(preference: AuthPreference): Promise<WorkspaceCredentials> {
+  const creds = await readCredentials();
+  creds.authPreference = preference;
   await writeCredentials(creds);
   return creds;
 }
@@ -114,10 +130,15 @@ export async function resolveApiKey(
 ): Promise<{ apiKey?: string; source: 'env' | 'workspace' | 'none' }> {
   const creds = await readCredentials();
   const workspaceKey = getActiveApiKey(creds);
-  if (workspaceKey) return { apiKey: workspaceKey, source: 'workspace' };
-
   const envApiKey = asString(process.env.LINEAR_API_KEY);
-  if (envApiKey) return { apiKey: envApiKey, source: 'env' };
+
+  if (creds.authPreference === 'env') {
+    if (envApiKey) return { apiKey: envApiKey, source: 'env' };
+    if (workspaceKey) return { apiKey: workspaceKey, source: 'workspace' };
+  } else {
+    if (workspaceKey) return { apiKey: workspaceKey, source: 'workspace' };
+    if (envApiKey) return { apiKey: envApiKey, source: 'env' };
+  }
 
   const promptIfMissing = options?.promptIfMissing ?? true;
   if (promptIfMissing && ctx.hasUI) {
