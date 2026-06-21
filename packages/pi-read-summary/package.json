@@ -1,0 +1,40 @@
+{
+  "name": "@alasano/pi-read-summary",
+  "version": "0.0.1",
+  "description": "Compact grouped read summaries for pi",
+  "keywords": [
+    "pi-package"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alasano/house-of-pi",
+    "directory": "packages/pi-read-summary"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ],
+    "image": "https://raw.githubusercontent.com/alasano/house-of-pi/master/packages/pi-read-summary/assets/screenshot.png"
+  },
+  "files": [
+    "extensions",
+    "assets",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.79.9",
+    "@earendil-works/pi-tui": ">=0.79.9"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.79.9",
+    "@earendil-works/pi-tui": "^0.79.9"
+  }
+}

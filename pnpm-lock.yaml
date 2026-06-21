@@ -89,6 +89,15 @@ importers:
         specifier: ^0.79.9
         version: 0.79.9
 
+  packages/pi-read-summary:
+    devDependencies:
+      '@earendil-works/pi-coding-agent':
+        specifier: ^0.79.9
+        version: 0.79.9(ws@8.20.0)(zod@4.3.6)
+      '@earendil-works/pi-tui':
+        specifier: ^0.79.9
+        version: 0.79.9
+
 packages:
   '@anthropic-ai/sdk@0.91.1':
     resolution:
