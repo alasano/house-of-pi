@@ -10,6 +10,7 @@ import {
   streamAgentRunEvents,
   type ExaAgentCreateRequest,
 } from '../agent';
+import { AgentTimeline, type AgentTimelineSnapshot } from '../agent-timeline';
 import type { AgentRunTracker } from '../agent-tracker';
 import { countAgentSources, formatAgentRunResponse } from '../format';
 import { truncateToolOutput } from '../output';
@@ -38,6 +39,7 @@ type WebAgentDetails =
       monitor?: 'stream' | 'poll';
       timedOut?: boolean;
       events?: string[];
+      eventCount?: number;
     })
   | undefined;
 
@@ -79,23 +81,28 @@ function agentEventProgress(event: ExaAgentEvent): string {
 
 function sendAgentTimelineUpdate(
   onUpdate: AgentToolUpdateCallback<WebAgentDetails> | undefined,
-  events: string[],
-  summary = 'running',
+  snapshot: AgentTimelineSnapshot,
 ) {
+  const eventLabel = snapshot.totalEvents === 1 ? 'event' : 'events';
   const preview: PreviewDetails = {
     kind: 'agent',
-    summary,
-    lines: events.slice(-6),
-    expandedLines: events,
+    summary: `${snapshot.status} | ${snapshot.totalEvents} ${eventLabel}`,
+    lines: snapshot.events,
   };
 
   onUpdate?.({
-    content: [{ type: 'text', text: events[events.length - 1] || 'Running Exa Agent...' }],
+    content: [
+      {
+        type: 'text',
+        text: snapshot.events[snapshot.events.length - 1] || 'Running Exa Agent...',
+      },
+    ],
     details: {
       endpoint: '/agent/runs',
       mode: 'wait',
       monitor: 'stream',
-      events,
+      events: snapshot.events,
+      eventCount: snapshot.totalEvents,
       preview,
     },
   });
@@ -192,7 +199,7 @@ async function waitWithStreaming(
   const timeoutSignal = createTimeoutSignal(signal, timeoutMs);
   let runId: string | undefined;
   let terminalFromStream = false;
-  const events: string[] = [];
+  const timeline = new AgentTimeline((snapshot) => sendAgentTimelineUpdate(onUpdate, snapshot));
 
   try {
     sendProgress(onUpdate, 'Starting Exa Agent run with streaming events...');
@@ -200,11 +207,10 @@ async function waitWithStreaming(
       runId = getRunIdFromAgentEvent(event) ?? runId;
       const status = typeof event.data.status === 'string' ? event.data.status : undefined;
       terminalFromStream = terminalFromStream || isTerminalAgentStatus(status);
-      const line = agentEventProgress(event);
-      events.push(line);
-      sendAgentTimelineUpdate(onUpdate, events, status || 'running');
+      timeline.append(agentEventProgress(event), status || 'running');
     }
   } catch (error) {
+    timeline.flush();
     if (!runId || (!timeoutSignal.isTimedOut() && signal?.aborted)) throw error;
     if (timeoutSignal.isTimedOut()) {
       const run = await getAgentRun(apiKey, runId, signal);
@@ -218,6 +224,8 @@ async function waitWithStreaming(
       signal,
     });
   } finally {
+    timeline.flush();
+    timeline.dispose();
     timeoutSignal.dispose();
   }
 

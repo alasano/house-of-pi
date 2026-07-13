@@ -314,7 +314,7 @@ function renderPreviewText(
     const label =
       preview.kind === 'agent'
         ? options?.partial
-          ? (options.partialLabel ?? 'Streaming events:')
+          ? (options.partialLabel ?? 'Latest streaming events:')
           : expanded
             ? 'Expanded UI preview; Ctrl+O to hide:'
             : 'Preview only; Ctrl+O to show full response:'
@@ -363,7 +363,10 @@ export function renderExaResult<TDetails extends { preview?: PreviewDetails } | 
           ? 'Polling status:'
           : undefined;
       return new Text(
-        renderPreviewText(result.details.preview, true, theme, { partial: true, partialLabel }),
+        renderPreviewText(result.details.preview, options.expanded, theme, {
+          partial: true,
+          partialLabel,
+        }),
         0,
         0,
       );
