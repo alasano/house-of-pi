@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/alasano/house-of-pi/compare/pi-exa-v0.1.1...pi-exa-v0.1.2) (2026-07-13)
+
+
+### Bug Fixes
+
+* **pi-exa:** bound agent event timeline ([#31](https://github.com/alasano/house-of-pi/issues/31)) ([cc4a042](https://github.com/alasano/house-of-pi/commit/cc4a0428a138c9837e6ae57701dee1ddf0a1e0ea))
+
 ## [0.1.1](https://github.com/alasano/house-of-pi/compare/pi-exa-v0.1.0...pi-exa-v0.1.1) (2026-06-21)
 
 
