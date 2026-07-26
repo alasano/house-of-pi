@@ -10,7 +10,7 @@
 
 ### [pi-eta](packages/pi-eta)
 
-Estimate calibration and wall-clock timing tools for pi agents. Agents submit unaided raw estimates; users see calibrated ETAs built from prior estimate-vs-actual outcomes.
+Estimate calibration for pi agents. The agent gives its estimate, `pi-eta` measures how long the work actually takes, and you see a corrected ETA built from its track record.
 
 <p align="center">
   <img src="packages/pi-eta/assets/pi-eta.svg" alt="pi-eta" />
