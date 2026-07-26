@@ -70,6 +70,7 @@
     "packages/pi-extra-context": {},
     "packages/pi-read-summary": {},
     "packages/pi-forcefeed": {},
-    "packages/pi-exa": {}
+    "packages/pi-exa": {},
+    "packages/pi-eta": {}
   }
 }

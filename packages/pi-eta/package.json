@@ -1,0 +1,44 @@
+{
+  "name": "pi-eta",
+  "version": "0.0.1",
+  "description": "Estimate calibration and wall-clock timing tools for pi agents",
+  "keywords": [
+    "pi-package"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alasano/house-of-pi",
+    "directory": "packages/pi-eta"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ],
+    "image": "https://raw.githubusercontent.com/alasano/house-of-pi/master/packages/pi-eta/assets/pi-eta.svg"
+  },
+  "files": [
+    "extensions",
+    "assets",
+    "README.md",
+    "CALIBRATION.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.82.1",
+    "@earendil-works/pi-tui": ">=0.82.1",
+    "typebox": ">=1.1.38"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.82.1",
+    "@earendil-works/pi-tui": "^0.82.1",
+    "typebox": "^1.1.38"
+  }
+}

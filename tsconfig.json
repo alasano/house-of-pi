@@ -19,7 +19,8 @@
     { "path": "packages/pi-extra-context" },
     { "path": "packages/pi-read-summary" },
     { "path": "packages/pi-forcefeed" },
-    { "path": "packages/pi-exa" }
+    { "path": "packages/pi-exa" },
+    { "path": "packages/pi-eta" }
   ],
   "exclude": ["node_modules", "dist"]
 }
