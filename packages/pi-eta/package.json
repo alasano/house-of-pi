@@ -1,6 +1,6 @@
 {
   "name": "pi-eta",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Estimate calibration and wall-clock timing tools for pi agents",
   "keywords": [
     "pi-package"
