@@ -8,6 +8,18 @@
 
 ## Packages
 
+### [pi-eta](packages/pi-eta)
+
+Estimate calibration and wall-clock timing tools for pi agents. Agents submit unaided raw estimates; users see calibrated ETAs built from prior estimate-vs-actual outcomes.
+
+<p align="center">
+  <img src="packages/pi-eta/assets/pi-eta.svg" alt="pi-eta" />
+</p>
+
+```bash
+pi install npm:pi-eta
+```
+
 ### [@alasano/pi-panels](packages/pi-panels)
 
 Responsive status panels rendered below the editor - git info, LLM context usage, and Spotify now-playing.
