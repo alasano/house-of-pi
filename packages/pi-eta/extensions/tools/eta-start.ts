@@ -24,7 +24,7 @@ export function createEtaStartTool(settings: EtaSettingsStore) {
       'Start a wall-clock ETA timer for one estimated task. Pass your own honest estimate; calibrated ETA details are shown only to the user.',
     promptSnippet: 'Start a wall-clock ETA timer with your own honest estimate',
     promptGuidelines: [
-      'Use eta_start before beginning any estimated task beyond a trivial immediate change.',
+      'Start a timer only for a bounded task you will finish yourself without user decisions or open-ended review rounds.',
     ],
     parameters: EtaStartParamsSchema,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {

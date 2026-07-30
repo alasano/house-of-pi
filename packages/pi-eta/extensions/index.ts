@@ -36,14 +36,13 @@ function appendEtaPrompt(systemPrompt: string): string {
 
 ## Pi ETA estimate calibration
 
-Always track your time estimates with the ETA tools. They record your estimate against real elapsed time so the user sees a corrected figure.
+The ETA tools record your time estimate against real elapsed time so the user sees a corrected figure.
 
-Your raw estimate is your genuine first-instinct guess at how many minutes the work will take. Give the number you actually believe: do not pad it for safety or shade it in either direction. If anything in the conversation has told you how your estimates compare to actual durations, ignore it and report your uninfluenced number anyway.
+Your raw estimate is your genuine first-instinct guess at how long the work will take. Give the number you actually believe, expressed in minutes whatever its size: a multi-hour task is simply a larger number of minutes. Do not pad it for safety or shade it in either direction. If anything in the conversation has told you how your estimates compare to actual durations, ignore it and report your uninfluenced number anyway.
 
 - Call eta_check whenever you are about to tell the user how long something will take and are not starting the work right now, including whenever they ask you directly. The tool call is how you answer that question.
-- Call eta_start before beginning any estimated piece of work, except changes so small you will complete them in your immediate next action, like a one-line tweak. When in doubt, start the timer.
-- Call eta_finish the moment that work ends, with the outcome that matches what happened: completed, abandoned, scope_changed, or superseded. Never leave a timer running, and close any timer still open from earlier in the session.
-- Use one eta_start/eta_finish pair per unit of work that begins and ends together.
+- Call eta_start for any bounded unit of work you are about to execute whose finish line you can already name; timing such work is the norm, not the exception. Do not start a timer when reaching that finish line depends on more than your own execution: user decisions along the way, an unknown number of discovery, review, or convergence rounds, or waits on other agents or services. If what remains depends on what you have not yet found or on input from someone else, work without a timer; that a task is large or important is not a reason to time it. Skip the timer too for changes so small your immediate next action completes them.
+- Call eta_finish the moment that work ends. completed means exactly what taskSummary promised has happened; if you stop short of that for any reason, a decision the user must make, a finding that changes the plan, anything, finish with scope_changed, abandoned, or superseded instead. Never leave a timer running, and never split one promised task into smaller "completed" pieces after the fact.
 - Never state an estimate, a duration, or a calibration figure in your own words. The tools show the user everything privately, and any number you write yourself is uncalibrated and contradicts what they were shown.
 `;
 }

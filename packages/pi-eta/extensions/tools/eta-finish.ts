@@ -18,7 +18,9 @@ export function createEtaFinishTool(settings: EtaSettingsStore) {
     description:
       'Finish the open ETA timer for this session, or a specific ETA task id. Completed tasks update calibration; abandoned/scope_changed/superseded tasks are recorded but excluded from calibration.',
     promptSnippet: 'Finish an ETA timer and record completed/abandoned/scope-changed outcome',
-    promptGuidelines: ['Use eta_finish as soon as eta_start work ends, whatever the outcome.'],
+    promptGuidelines: [
+      'Use eta_finish as soon as eta_start work ends, whatever the outcome; stopping short of the promised task is scope_changed, not completed.',
+    ],
     parameters: EtaFinishParamsSchema,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       try {

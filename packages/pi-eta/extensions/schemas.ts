@@ -59,7 +59,7 @@ export const EtaFinishParamsSchema = Type.Object(
     outcome: Type.Optional(
       stringEnum(ETA_OUTCOMES, {
         description:
-          'Task outcome; defaults to completed. Only completed tasks affect calibration; abandoned/scope_changed/superseded close the timer without training.',
+          'Task outcome; defaults to completed. completed means the exact task in taskSummary was finished; use scope_changed when work stopped short of it. Only completed tasks affect calibration; abandoned/scope_changed/superseded close the timer without training.',
       }),
     ),
     note: Type.Optional(
