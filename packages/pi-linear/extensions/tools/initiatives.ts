@@ -12,6 +12,7 @@ import {
   DateResolutionTypeSchema,
   FrequencyResolutionTypeSchema,
   DaySchema,
+  nullable,
 } from '../params';
 import { INITIATIVE_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
@@ -165,10 +166,10 @@ export function initiativeTools() {
             description: 'Initiative status.',
           }),
         ),
-        targetDate: Type.Optional(Type.String()),
+        targetDate: nullable(Type.String(), 'Target date. Set to null to clear.'),
         targetDateResolution: Type.Optional(DateResolutionTypeSchema),
         frequencyResolution: Type.Optional(FrequencyResolutionTypeSchema),
-        trashed: Type.Optional(Type.Boolean({ description: 'Update mode only.' })),
+        trashed: nullable(Type.Boolean(), 'Set true to trash, null to restore (update mode only).'),
         updateReminderFrequency: Type.Optional(Type.Number({ description: 'Update mode only.' })),
         updateReminderFrequencyInWeeks: Type.Optional(
           Type.Number({ description: 'Update mode only.' }),

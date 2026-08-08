@@ -15,6 +15,7 @@ import {
   inputParam,
   ISSUE_SORT_KEYS,
   SlaDayCountTypeSchema,
+  nullable,
   TeamConvenienceParams,
 } from '../params';
 import { ISSUE_SELECTION } from '../selections';
@@ -357,7 +358,7 @@ export function issueTools() {
       name: 'linear_update_issue',
       label: 'Linear Update Issue',
       description:
-        'Update a Linear issue by identifier (ENG-123) or issue id. Supports all IssueUpdateInput fields via top-level params and/or input object. Use clearDueDate=true (or dueDate=null in input) to clear due date.',
+        'Update a Linear issue by identifier (ENG-123) or issue id. Supports all IssueUpdateInput fields via top-level params and/or input object. Set dueDate=null to clear the due date.',
       parameters: Type.Object({
         issue: Type.String({
           description: 'Issue identifier (ENG-123) or issue id.',
@@ -374,13 +375,9 @@ export function issueTools() {
         ),
         stateId: Type.Optional(Type.String({ description: 'IssueUpdateInput.stateId' })),
         assigneeId: Type.Optional(Type.String({ description: 'IssueUpdateInput.assigneeId' })),
-        dueDate: Type.Optional(
-          Type.String({
-            description: 'IssueUpdateInput.dueDate (YYYY-MM-DD). Empty string clears.',
-          }),
-        ),
-        clearDueDate: Type.Optional(
-          Type.Boolean({ description: 'If true, dueDate is set to null.' }),
+        dueDate: nullable(
+          Type.String(),
+          'IssueUpdateInput.dueDate (YYYY-MM-DD). Set to null to clear.',
         ),
         addedLabelIds: Type.Optional(
           Type.Array(Type.String(), {
@@ -434,7 +431,10 @@ export function issueTools() {
           }),
         ),
         teamId: Type.Optional(Type.String({ description: 'IssueUpdateInput.teamId' })),
-        trashed: Type.Optional(Type.Boolean({ description: 'IssueUpdateInput.trashed' })),
+        trashed: nullable(
+          Type.Boolean(),
+          'IssueUpdateInput.trashed. Set true to trash, null to restore.',
+        ),
         input: inputParam('IssueUpdateInput', 'Enum fields: slaType (all, onlyBusinessDays).'),
       }),
       renderCall: renderLinearUpdateIssueCall,
@@ -442,13 +442,6 @@ export function issueTools() {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const issueId = await resolveIssueId(apiKey, params.issue, signal);
           const rawInput = asObject(params.input) || {};
-
-          const dueDate =
-            params.clearDueDate || params.dueDate === ''
-              ? null
-              : params.dueDate !== undefined
-                ? params.dueDate
-                : undefined;
 
           const convenienceInput = compactObject({
             addedLabelIds: params.addedLabelIds,
@@ -458,7 +451,7 @@ export function issueTools() {
             delegateId: params.delegateId,
             description: params.description,
             descriptionData: asObject(params.descriptionData),
-            dueDate,
+            dueDate: params.dueDate,
             estimate: params.estimate,
             labelIds: params.labelIds,
             lastAppliedTemplateId: params.lastAppliedTemplateId,

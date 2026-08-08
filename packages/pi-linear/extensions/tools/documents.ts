@@ -8,6 +8,7 @@ import {
   sortParam,
   inputParam,
   DOCUMENT_SORT_KEYS,
+  nullable,
   TeamConvenienceParams,
 } from '../params';
 import { DOCUMENT_SELECTION } from '../selections';
@@ -261,7 +262,7 @@ export function documentTools() {
         color: Type.Optional(Type.String()),
         content: Type.Optional(Type.String()),
         cycleId: Type.Optional(Type.String()),
-        hiddenAt: Type.Optional(Type.String()),
+        hiddenAt: nullable(Type.String(), 'Set to null to unhide.'),
         icon: Type.Optional(Type.String()),
         initiativeId: Type.Optional(Type.String()),
         issueId: Type.Optional(Type.String()),
@@ -273,7 +274,7 @@ export function documentTools() {
         subscriberIds: Type.Optional(Type.Array(Type.String())),
         ...TeamConvenienceParams,
         title: Type.Optional(Type.String()),
-        trashed: Type.Optional(Type.Boolean()),
+        trashed: nullable(Type.Boolean(), 'Set true to trash, null to restore.'),
         input: inputParam('DocumentUpdateInput'),
       }),
       renderCall: renderLinearUpdateDocumentCall,

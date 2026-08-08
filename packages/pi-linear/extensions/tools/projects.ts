@@ -11,6 +11,7 @@ import {
   DateResolutionTypeSchema,
   FrequencyResolutionTypeSchema,
   DaySchema,
+  nullable,
 } from '../params';
 import { PROJECT_DETAIL_SELECTION, PROJECT_LIST_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
@@ -188,13 +189,14 @@ export function projectTools() {
         canceledAt: Type.Optional(Type.String({ description: 'Update mode only.' })),
         completedAt: Type.Optional(Type.String({ description: 'Update mode only.' })),
         frequencyResolution: Type.Optional(FrequencyResolutionTypeSchema),
-        projectUpdateRemindersPausedUntilAt: Type.Optional(
-          Type.String({ description: 'Update mode only.' }),
+        projectUpdateRemindersPausedUntilAt: nullable(
+          Type.String(),
+          'Set to null to resume reminders (update mode only).',
         ),
         slackIssueComments: Type.Optional(Type.Boolean({ description: 'Update mode only.' })),
         slackIssueStatuses: Type.Optional(Type.Boolean({ description: 'Update mode only.' })),
         slackNewIssue: Type.Optional(Type.Boolean({ description: 'Update mode only.' })),
-        trashed: Type.Optional(Type.Boolean({ description: 'Update mode only.' })),
+        trashed: nullable(Type.Boolean(), 'Set true to trash, null to restore (update mode only).'),
         updateReminderFrequency: Type.Optional(Type.Number({ description: 'Update mode only.' })),
         updateReminderFrequencyInWeeks: Type.Optional(
           Type.Number({ description: 'Update mode only.' }),

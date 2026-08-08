@@ -1,4 +1,4 @@
-import { Type, type TUnsafe } from 'typebox';
+import { Type, type TSchema, type TUnsafe } from 'typebox';
 import { compactObject, GenericObjectSchema } from './util';
 
 export function stringEnum<const T extends readonly string[]>(
@@ -10,6 +10,10 @@ export function stringEnum<const T extends readonly string[]>(
     enum: [...values],
     ...(options?.description && { description: options.description }),
   });
+}
+
+export function nullable<T extends TSchema>(schema: T, description: string) {
+  return Type.Optional(Type.Union([schema, Type.Null()], { description }));
 }
 
 const PAGINATION_ORDER_BY_VALUES = ['createdAt', 'updatedAt'] as const;

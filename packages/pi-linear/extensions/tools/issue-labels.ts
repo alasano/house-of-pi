@@ -6,6 +6,7 @@ import {
   paginationVariables,
   filterParam,
   inputParam,
+  nullable,
   TeamConvenienceParams,
 } from '../params';
 import { ISSUE_LABEL_SELECTION } from '../selections';
@@ -199,7 +200,7 @@ export function issueLabelTools() {
         color: Type.Optional(Type.String()),
         parentId: Type.Optional(Type.String()),
         isGroup: Type.Optional(Type.Boolean()),
-        retiredAt: Type.Optional(Type.String()),
+        retiredAt: nullable(Type.String(), 'Set to null to restore a retired label.'),
         replaceTeamLabels: Type.Optional(Type.Boolean()),
         input: inputParam('IssueLabelUpdateInput'),
       }),
