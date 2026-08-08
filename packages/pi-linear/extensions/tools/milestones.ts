@@ -1,7 +1,7 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
-import { PaginationParams, paginationVariables, FilterParam, RawInputParam } from '../params';
+import { PaginationParams, paginationVariables, filterParam, inputParam } from '../params';
 import { MILESTONE_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asString, GenericObjectSchema } from '../util';
@@ -24,7 +24,7 @@ export function milestoneTools() {
       description: 'List project milestones. Supports full projectMilestones query args.',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
+        filter: filterParam('ProjectMilestoneFilter'),
       }),
       renderCall: renderLinearMilestoneListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -129,7 +129,9 @@ export function milestoneTools() {
         projectId: Type.Optional(Type.String()),
         sortOrder: Type.Optional(Type.Number()),
         targetDate: Type.Optional(Type.String()),
-        ...RawInputParam,
+        input: inputParam(
+          'ProjectMilestoneCreateInput (milestoneId omitted) or ProjectMilestoneUpdateInput (milestoneId provided)',
+        ),
       }),
       renderCall: renderLinearMilestoneSaveCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {

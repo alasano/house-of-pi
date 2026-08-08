@@ -1,7 +1,13 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
-import { PaginationParams, paginationVariables, FilterParam, SortParam } from '../params';
+import {
+  PaginationParams,
+  paginationVariables,
+  filterParam,
+  sortParam,
+  USER_SORT_KEYS,
+} from '../params';
 import { USER_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asObjectArray } from '../util';
@@ -20,8 +26,8 @@ export function userTools() {
       description: 'List users. Supports full users query args.',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
-        ...SortParam,
+        filter: filterParam('UserFilter'),
+        sort: sortParam('UserSortInput', USER_SORT_KEYS),
         includeDisabled: Type.Optional(Type.Boolean()),
       }),
       renderCall: renderLinearUserListCall,

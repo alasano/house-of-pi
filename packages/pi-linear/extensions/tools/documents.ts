@@ -4,8 +4,8 @@ import { withLinearAuth, linearGraphQL, resolveTeamId } from '../client';
 import {
   PaginationParams,
   paginationVariables,
-  FilterParam,
-  RawInputParam,
+  filterParam,
+  inputParam,
   TeamConvenienceParams,
 } from '../params';
 import { DOCUMENT_SELECTION } from '../selections';
@@ -61,7 +61,7 @@ export function documentTools() {
       description: 'List documents. Supports full documents query args.',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
+        filter: filterParam('DocumentFilter'),
       }),
       renderCall: renderLinearDocumentListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -171,7 +171,7 @@ export function documentTools() {
         subscriberIds: Type.Optional(Type.Array(Type.String())),
         ...TeamConvenienceParams,
         title: Type.Optional(Type.String()),
-        ...RawInputParam,
+        input: inputParam('DocumentCreateInput'),
       }),
       renderCall: renderLinearCreateDocumentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -268,7 +268,7 @@ export function documentTools() {
         ...TeamConvenienceParams,
         title: Type.Optional(Type.String()),
         trashed: Type.Optional(Type.Boolean()),
-        ...RawInputParam,
+        input: inputParam('DocumentUpdateInput'),
       }),
       renderCall: renderLinearUpdateDocumentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {

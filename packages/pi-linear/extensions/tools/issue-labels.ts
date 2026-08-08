@@ -4,8 +4,8 @@ import { withLinearAuth, linearGraphQL, resolveTeamId } from '../client';
 import {
   PaginationParams,
   paginationVariables,
-  FilterParam,
-  RawInputParam,
+  filterParam,
+  inputParam,
   TeamConvenienceParams,
 } from '../params';
 import { ISSUE_LABEL_SELECTION } from '../selections';
@@ -30,7 +30,7 @@ export function issueLabelTools() {
       parameters: Type.Object({
         ...TeamConvenienceParams,
         ...PaginationParams,
-        ...FilterParam,
+        filter: filterParam('IssueLabelFilter'),
       }),
       renderCall: renderLinearIssueLabelListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -117,7 +117,7 @@ export function issueLabelTools() {
         retiredAt: Type.Optional(Type.String()),
         ...TeamConvenienceParams,
         replaceTeamLabels: Type.Optional(Type.Boolean()),
-        ...RawInputParam,
+        input: inputParam('IssueLabelCreateInput'),
       }),
       renderCall: renderLinearCreateIssueLabelCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -201,7 +201,7 @@ export function issueLabelTools() {
         isGroup: Type.Optional(Type.Boolean()),
         retiredAt: Type.Optional(Type.String()),
         replaceTeamLabels: Type.Optional(Type.Boolean()),
-        ...RawInputParam,
+        input: inputParam('IssueLabelUpdateInput'),
       }),
       renderCall: renderLinearUpdateIssueLabelCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {

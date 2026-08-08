@@ -4,9 +4,10 @@ import { withLinearAuth, linearGraphQL } from '../client';
 import {
   PaginationParams,
   paginationVariables,
-  FilterParam,
-  SortParam,
-  RawInputParam,
+  filterParam,
+  sortParam,
+  inputParam,
+  INITIATIVE_SORT_KEYS,
 } from '../params';
 import { INITIATIVE_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
@@ -32,8 +33,11 @@ export function initiativeTools() {
       description: 'List initiatives. Supports full initiatives query args.',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
-        ...SortParam,
+        filter: filterParam(
+          'InitiativeFilter',
+          'Closed sets: status (Proposed, Planned, Active, Completed, Canceled); health (onTrack, atRisk, offTrack).',
+        ),
+        sort: sortParam('InitiativeSortInput', INITIATIVE_SORT_KEYS),
       }),
       renderCall: renderLinearInitiativeListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -149,7 +153,10 @@ export function initiativeTools() {
         updateReminderFrequencyInWeeks: Type.Optional(Type.Number()),
         updateRemindersDay: Type.Optional(Type.String()),
         updateRemindersHour: Type.Optional(Type.Integer()),
-        ...RawInputParam,
+        input: inputParam(
+          'InitiativeCreateInput (initiativeId omitted) or InitiativeUpdateInput (initiativeId provided)',
+          'Enum fields: status (Proposed, Planned, Active, Completed, Canceled); targetDateResolution (month, quarter, halfYear, year); update mode also: frequencyResolution (daily, weekly), updateRemindersDay (Sunday-Saturday).',
+        ),
       }),
       renderCall: renderLinearSaveInitiativeCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {

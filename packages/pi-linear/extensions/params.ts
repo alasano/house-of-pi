@@ -79,17 +79,93 @@ export function paginationVariables(
   });
 }
 
-export const SortParam = {
-  sort: Type.Optional(Type.Array(GenericObjectSchema, { description: 'Sort input array.' })),
-};
+export const ISSUE_SORT_KEYS = [
+  'priority',
+  'estimate',
+  'title',
+  'label',
+  'labelGroup',
+  'slaStatus',
+  'createdAt',
+  'updatedAt',
+  'completedAt',
+  'dueDate',
+  'accumulatedStateUpdatedAt',
+  'cycle',
+  'milestone',
+  'assignee',
+  'delegate',
+  'project',
+  'team',
+  'manual',
+  'workflowState',
+  'customer',
+  'customerRevenue',
+  'customerCount',
+  'customerImportantCount',
+  'rootIssue',
+  'linkCount',
+  'release',
+] as const;
 
-export const FilterParam = {
-  filter: Type.Optional(GenericObjectSchema),
-};
+export const PROJECT_SORT_KEYS = [
+  'name',
+  'status',
+  'priority',
+  'manual',
+  'targetDate',
+  'startDate',
+  'createdAt',
+  'updatedAt',
+  'health',
+  'lead',
+] as const;
 
-export const RawInputParam = {
-  input: Type.Optional(GenericObjectSchema),
-};
+export const INITIATIVE_SORT_KEYS = [
+  'name',
+  'manual',
+  'updatedAt',
+  'createdAt',
+  'targetDate',
+  'health',
+  'healthUpdatedAt',
+  'owner',
+  'priority',
+] as const;
+
+export const USER_SORT_KEYS = ['name', 'displayName'] as const;
+
+export const DOCUMENT_SORT_KEYS = [
+  'title',
+  'creator',
+  'project',
+  'createdAt',
+  'updatedAt',
+] as const;
+
+export function filterParam(typeName: string, valueHints?: string) {
+  return Type.Optional(
+    Type.Record(Type.String(), Type.Any(), {
+      description: `Linear ${typeName} object. Fields take comparators, e.g. { "field": { "eq": value } } (eq, neq, in, nin, contains, null, and/or compounds).${valueHints ? ` ${valueHints}` : ''}`,
+    }),
+  );
+}
+
+export function sortParam(typeName: string, keys: readonly string[], note?: string) {
+  return Type.Optional(
+    Type.Array(GenericObjectSchema, {
+      description: `${typeName} array, e.g. [{ "updatedAt": { "order": "Descending", "nulls": "last" } }] (order: Ascending | Descending; nulls: first | last). Keys: ${keys.join(', ')}.${note ? ` ${note}` : ''}`,
+    }),
+  );
+}
+
+export function inputParam(typeClause: string, extra?: string) {
+  return Type.Optional(
+    Type.Record(Type.String(), Type.Any(), {
+      description: `Additional ${typeClause} fields; top-level parameters override matching fields.${extra ? ` ${extra}` : ''}`,
+    }),
+  );
+}
 
 export const TeamConvenienceParams = {
   teamId: Type.Optional(Type.String({ description: 'Team id.' })),

@@ -1,7 +1,7 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
-import { PaginationParams, paginationVariables, FilterParam, RawInputParam } from '../params';
+import { PaginationParams, paginationVariables, filterParam, inputParam } from '../params';
 import { PROJECT_LABEL_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asString } from '../util';
@@ -23,7 +23,7 @@ export function projectLabelTools() {
       description: 'List project labels. Supports full projectLabels query args.',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
+        filter: filterParam('ProjectLabelFilter'),
       }),
       renderCall: renderLinearProjectLabelListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -90,7 +90,7 @@ export function projectLabelTools() {
         color: Type.Optional(Type.String()),
         parentId: Type.Optional(Type.String()),
         isGroup: Type.Optional(Type.Boolean()),
-        ...RawInputParam,
+        input: inputParam('ProjectLabelCreateInput'),
       }),
       renderCall: renderLinearCreateProjectLabelCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -154,7 +154,7 @@ export function projectLabelTools() {
         color: Type.Optional(Type.String()),
         parentId: Type.Optional(Type.String()),
         isGroup: Type.Optional(Type.Boolean()),
-        ...RawInputParam,
+        input: inputParam('ProjectLabelUpdateInput'),
       }),
       renderCall: renderLinearUpdateProjectLabelCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {

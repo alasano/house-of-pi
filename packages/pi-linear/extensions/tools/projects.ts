@@ -4,9 +4,10 @@ import { withLinearAuth, linearGraphQL } from '../client';
 import {
   PaginationParams,
   paginationVariables,
-  FilterParam,
-  SortParam,
-  RawInputParam,
+  filterParam,
+  sortParam,
+  inputParam,
+  PROJECT_SORT_KEYS,
 } from '../params';
 import { PROJECT_DETAIL_SELECTION, PROJECT_LIST_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
@@ -32,8 +33,11 @@ export function projectTools() {
       description: 'List projects. Supports full projects query args and raw filter/sort.',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
-        ...SortParam,
+        filter: filterParam(
+          'ProjectFilter',
+          'Closed sets: status.type (backlog, planned, started, paused, completed, canceled); health (onTrack, atRisk, offTrack); priority (0-4).',
+        ),
+        sort: sortParam('ProjectSortInput', PROJECT_SORT_KEYS),
       }),
       renderCall: renderLinearProjectListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -167,7 +171,10 @@ export function projectTools() {
         updateRemindersDay: Type.Optional(Type.String()),
         updateRemindersHour: Type.Optional(Type.Integer()),
         slackChannelName: Type.Optional(Type.String()),
-        ...RawInputParam,
+        input: inputParam(
+          'ProjectCreateInput (projectId omitted) or ProjectUpdateInput (projectId provided)',
+          'Enum fields: startDateResolution/targetDateResolution (month, quarter, halfYear, year); update mode also: frequencyResolution (daily, weekly), updateRemindersDay (Sunday-Saturday).',
+        ),
       }),
       renderCall: renderLinearSaveProjectCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {

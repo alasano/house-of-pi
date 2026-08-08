@@ -1,7 +1,7 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
-import { PaginationParams, paginationVariables, FilterParam } from '../params';
+import { PaginationParams, paginationVariables, filterParam } from '../params';
 import { TEAM_SELECTION } from '../selections';
 import type { LinearTeam, JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject } from '../util';
@@ -21,7 +21,7 @@ export function teamTools() {
         'List Linear teams and states. Supports full teams query args: after, before, filter, first, includeArchived, last, orderBy.',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
+        filter: filterParam('TeamFilter', 'Closed sets: visibility (public, restricted, private).'),
       }),
       renderCall: renderLinearTeamListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {

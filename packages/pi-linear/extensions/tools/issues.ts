@@ -10,10 +10,11 @@ import {
 import {
   PaginationParams,
   paginationVariables,
-  FilterParam,
-  SortParam,
+  filterParam,
+  sortParam,
+  inputParam,
+  ISSUE_SORT_KEYS,
   TeamConvenienceParams,
-  RawInputParam,
 } from '../params';
 import { ISSUE_SELECTION } from '../selections';
 import type { LinearIssue, JsonObject, LinearConnection } from '../types';
@@ -31,6 +32,9 @@ import {
   renderLinearUnarchiveIssueCall,
   renderLinearUpdateIssueCall,
 } from '../renderers/issues';
+
+const ISSUE_FILTER_HINT =
+  'Closed sets: state.type (triage, backlog, unstarted, started, completed, canceled, duplicate); slaStatus (Breached, HighRisk, MediumRisk, LowRisk, Completed, Failed); addedToCyclePeriod (before, during, after); priority (0-4).';
 
 export function issueTools() {
   return [
@@ -57,8 +61,12 @@ export function issueTools() {
         ),
         ...TeamConvenienceParams,
         ...PaginationParams,
-        ...FilterParam,
-        ...SortParam,
+        filter: filterParam('IssueFilter', ISSUE_FILTER_HINT),
+        sort: sortParam(
+          'IssueSortInput',
+          ISSUE_SORT_KEYS,
+          'labelGroup requires a labelGroupId; rootIssue requires a nested sort object.',
+        ),
       }),
       renderCall: renderLinearIssueListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -250,7 +258,7 @@ export function issueTools() {
         useDefaultTemplate: Type.Optional(
           Type.Boolean({ description: 'IssueCreateInput.useDefaultTemplate' }),
         ),
-        ...RawInputParam,
+        input: inputParam('IssueCreateInput', 'Enum fields: slaType (all, onlyBusinessDays).'),
       }),
       renderCall: renderLinearCreateIssueCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -424,7 +432,7 @@ export function issueTools() {
         ),
         teamId: Type.Optional(Type.String({ description: 'IssueUpdateInput.teamId' })),
         trashed: Type.Optional(Type.Boolean({ description: 'IssueUpdateInput.trashed' })),
-        ...RawInputParam,
+        input: inputParam('IssueUpdateInput', 'Enum fields: slaType (all, onlyBusinessDays).'),
       }),
       renderCall: renderLinearUpdateIssueCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -638,7 +646,7 @@ export function issueTools() {
         includeComments: Type.Optional(Type.Boolean({ description: 'Search in comments too.' })),
         teamId: Type.Optional(Type.String({ description: 'Team UUID to boost results for.' })),
         ...PaginationParams,
-        ...FilterParam,
+        filter: filterParam('IssueFilter', ISSUE_FILTER_HINT),
       }),
       renderCall: renderLinearIssueSearchCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {

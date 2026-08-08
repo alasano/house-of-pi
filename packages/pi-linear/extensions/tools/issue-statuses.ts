@@ -1,7 +1,7 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
-import { PaginationParams, paginationVariables, FilterParam } from '../params';
+import { PaginationParams, paginationVariables, filterParam } from '../params';
 import { WORKFLOW_STATE_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject } from '../util';
@@ -19,7 +19,10 @@ export function issueStatusTools() {
         'List workflow states (issue statuses). Supports full workflowStates query args.',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
+        filter: filterParam(
+          'WorkflowStateFilter',
+          'Closed sets: type (triage, backlog, unstarted, started, completed, canceled, duplicate).',
+        ),
       }),
       renderCall: renderLinearIssueStatusListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
