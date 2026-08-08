@@ -22,6 +22,7 @@ import {
   type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type ProjectLabelLike = {
@@ -173,6 +174,7 @@ function renderProjectLabelCard(
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const label = projectLabelDetails(result).label;
   if (!label) {
@@ -232,6 +234,7 @@ export function renderLinearProjectLabelListResult(
 ): Text | LinearListResultComponent<ProjectLabelLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading project labels…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const labels = Array.isArray(projectLabelDetails(result).labels)
     ? (projectLabelDetails(result).labels as ProjectLabelLike[])
@@ -258,10 +261,11 @@ export function renderLinearProjectLabelDeleteResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
-  context: { args?: unknown },
+  context: LinearToolRenderContext,
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Deleting project label…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const details = projectLabelDetails(result);
   const args = (context.args ?? {}) as { id?: unknown };

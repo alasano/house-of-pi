@@ -21,6 +21,7 @@ import {
   type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type InitiativeLike = {
@@ -197,6 +198,7 @@ function renderInitiativeCard(
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const initiative = initiativeDetails(result).initiative;
   if (!initiative) {
@@ -273,6 +275,7 @@ export function renderLinearInitiativeListResult(
 ): Text | LinearListResultComponent<InitiativeLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading initiatives…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const initiatives = Array.isArray(initiativeDetails(result).initiatives)
     ? (initiativeDetails(result).initiatives as InitiativeLike[])
@@ -299,7 +302,7 @@ export function renderLinearSaveInitiativeResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
-  context: { args?: unknown },
+  context: LinearToolRenderContext,
 ): Text {
   const args = (context.args ?? {}) as { initiativeId?: unknown };
   const actionLabel = asString(args.initiativeId) ? 'Updated initiative' : 'Created initiative';
@@ -311,11 +314,12 @@ export function renderLinearInitiativeSuccessResult(defaultActionLabel: string) 
     result: AgentToolResult<any>,
     options: ToolRenderResultOptions,
     theme: Theme,
-    context: { args?: unknown },
+    context: LinearToolRenderContext,
   ): Text => {
     if (options.isPartial)
       return new Text(theme.fg('warning', `${defaultActionLabel} initiative…`), 0, 0);
     if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) return renderLinearErrorResult(result, theme);
 
     const details = initiativeDetails(result);
     const args = (context.args ?? {}) as { initiativeId?: unknown };

@@ -18,6 +18,7 @@ import {
   type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type IssueLabelRef = {
@@ -54,7 +55,7 @@ function issueLabelDetails(result: AgentToolResult<any>): IssueLabelResultDetail
   return (result.details ?? {}) as IssueLabelResultDetails;
 }
 
-function argsObject(context: { args?: unknown }): ToolArgs {
+function argsObject(context: LinearToolRenderContext): ToolArgs {
   return context.args && typeof context.args === 'object' && !Array.isArray(context.args)
     ? (context.args as ToolArgs)
     : {};
@@ -241,6 +242,7 @@ export function renderLinearIssueLabelListResult(
 ): Text | LinearListResultComponent<IssueLabelLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading issue labels…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const labels = Array.isArray(issueLabelDetails(result).labels)
     ? (issueLabelDetails(result).labels as IssueLabelLike[])
@@ -264,6 +266,7 @@ export function renderLinearIssueLabelResult(actionLabel: string) {
   ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
     if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) return renderLinearErrorResult(result, theme);
 
     return renderIssueLabelCard(actionLabel, issueLabelDetails(result).label, theme);
   };
@@ -273,10 +276,11 @@ export function renderLinearIssueLabelDeleteResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
-  context: { args?: unknown },
+  context: LinearToolRenderContext,
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Deleting issue label…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const details = issueLabelDetails(result);
   const args = argsObject(context);

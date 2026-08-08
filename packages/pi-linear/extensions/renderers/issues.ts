@@ -23,6 +23,7 @@ import {
   type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type IssueLike = LinearIssue & {
@@ -289,6 +290,7 @@ export function renderLinearIssueListResult(
 ): Text | LinearListResultComponent<IssueLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading issues…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const issues = Array.isArray(issueDetails(result).issues)
     ? (issueDetails(result).issues as IssueLike[])
@@ -311,6 +313,7 @@ export function renderLinearIssueResult(actionLabel: string) {
   ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
     if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) return renderLinearErrorResult(result, theme);
 
     const issue = issueDetails(result).issue as IssueLike | null | undefined;
     if (!issue) {
@@ -335,11 +338,12 @@ export function renderLinearIssueSuccessResult(defaultActionLabel: string) {
     result: AgentToolResult<any>,
     options: ToolRenderResultOptions,
     theme: Theme,
-    context: { args?: unknown },
+    context: LinearToolRenderContext,
   ): Text => {
     if (options.isPartial)
       return new Text(theme.fg('warning', `${defaultActionLabel} issue…`), 0, 0);
     if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) return renderLinearErrorResult(result, theme);
 
     const details = issueDetails(result);
     const args = (context.args ?? {}) as {

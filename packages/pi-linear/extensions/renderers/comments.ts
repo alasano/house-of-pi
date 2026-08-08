@@ -22,6 +22,7 @@ import {
   type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type NamedRef = {
@@ -66,7 +67,7 @@ function commentDetails(result: AgentToolResult<any>): CommentResultDetails {
   return (result.details ?? {}) as CommentResultDetails;
 }
 
-function argsObject(context: { args?: unknown }): ToolArgs {
+function argsObject(context: LinearToolRenderContext): ToolArgs {
   return context.args && typeof context.args === 'object' && !Array.isArray(context.args)
     ? (context.args as ToolArgs)
     : {};
@@ -267,6 +268,7 @@ export function renderLinearCommentListResult(
 ): Text | LinearListResultComponent<CommentLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading comments…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const comments = Array.isArray(commentDetails(result).comments)
     ? (commentDetails(result).comments as CommentLike[])
@@ -289,6 +291,7 @@ export function renderLinearCommentResult(actionLabel: string) {
   ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
     if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) return renderLinearErrorResult(result, theme);
 
     return renderCommentCard(actionLabel, commentDetails(result).comment, theme);
   };
@@ -298,10 +301,11 @@ export function renderLinearDeleteCommentResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
-  context: { args?: unknown },
+  context: LinearToolRenderContext,
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Deleting comment…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const details = commentDetails(result);
   const args = argsObject(context);

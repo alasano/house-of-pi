@@ -21,6 +21,7 @@ import {
   type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type ProjectRelationProject = {
@@ -71,7 +72,7 @@ function projectRelationDetails(result: AgentToolResult<any>): ProjectRelationRe
   return (result.details ?? {}) as ProjectRelationResultDetails;
 }
 
-function argsObject(context: { args?: unknown }): ToolArgs {
+function argsObject(context: LinearToolRenderContext): ToolArgs {
   return context.args && typeof context.args === 'object' && !Array.isArray(context.args)
     ? (context.args as ToolArgs)
     : {};
@@ -287,6 +288,7 @@ export function renderLinearProjectRelationListResult(
 ): Text | LinearListResultComponent<ProjectRelationLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading project relations…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const projectRelations = Array.isArray(projectRelationDetails(result).projectRelations)
     ? (projectRelationDetails(result).projectRelations as ProjectRelationLike[])
@@ -310,6 +312,7 @@ export function renderLinearProjectRelationResult(actionLabel: string) {
   ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
     if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) return renderLinearErrorResult(result, theme);
 
     return renderProjectRelationCard(
       actionLabel,
@@ -323,10 +326,11 @@ export function renderLinearDeleteProjectRelationResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
-  context: { args?: unknown },
+  context: LinearToolRenderContext,
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Deleting project relation…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const details = projectRelationDetails(result);
   const args = argsObject(context);

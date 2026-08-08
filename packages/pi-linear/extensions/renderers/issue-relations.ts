@@ -20,6 +20,7 @@ import {
   type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type NamedIssue = {
@@ -51,7 +52,7 @@ function issueRelationDetails(result: AgentToolResult<any>): IssueRelationResult
   return (result.details ?? {}) as IssueRelationResultDetails;
 }
 
-function argsObject(context: { args?: unknown }): ToolArgs {
+function argsObject(context: LinearToolRenderContext): ToolArgs {
   return context.args && typeof context.args === 'object' && !Array.isArray(context.args)
     ? (context.args as ToolArgs)
     : {};
@@ -262,6 +263,7 @@ export function renderLinearIssueRelationListResult(
 ): Text | LinearListResultComponent<IssueRelationLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading issue relations…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const issueRelations = Array.isArray(issueRelationDetails(result).issueRelations)
     ? (issueRelationDetails(result).issueRelations as IssueRelationLike[])
@@ -284,6 +286,7 @@ export function renderLinearIssueRelationResult(actionLabel: string) {
   ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
     if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) return renderLinearErrorResult(result, theme);
 
     return renderIssueRelationCard(actionLabel, issueRelationDetails(result).issueRelation, theme);
   };
@@ -293,10 +296,11 @@ export function renderLinearDeleteIssueRelationResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
-  context: { args?: unknown },
+  context: LinearToolRenderContext,
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Deleting issue relation…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const details = issueRelationDetails(result);
   const args = argsObject(context);
