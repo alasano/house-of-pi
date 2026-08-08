@@ -14,6 +14,7 @@ import {
   sortParam,
   inputParam,
   ISSUE_SORT_KEYS,
+  SlaDayCountTypeSchema,
   TeamConvenienceParams,
 } from '../params';
 import { ISSUE_SELECTION } from '../selections';
@@ -215,10 +216,11 @@ export function issueTools() {
           }),
         ),
         priority: Type.Optional(
-          Type.Number({
+          Type.Integer({
             minimum: 0,
             maximum: 4,
-            description: 'IssueCreateInput.priority (0 none, 1 urgent, 2 high, 3 normal, 4 low).',
+            description:
+              'IssueCreateInput.priority (0 = No priority, 1 = Urgent, 2 = High, 3 = Medium, 4 = Low).',
           }),
         ),
         prioritySortOrder: Type.Optional(
@@ -235,7 +237,7 @@ export function issueTools() {
           Type.String({ description: 'IssueCreateInput.slaBreachesAt' }),
         ),
         slaStartedAt: Type.Optional(Type.String({ description: 'IssueCreateInput.slaStartedAt' })),
-        slaType: Type.Optional(Type.String({ description: 'IssueCreateInput.slaType' })),
+        slaType: Type.Optional(SlaDayCountTypeSchema),
         sortOrder: Type.Optional(Type.Number({ description: 'IssueCreateInput.sortOrder' })),
         sourceCommentId: Type.Optional(
           Type.String({ description: 'IssueCreateInput.sourceCommentId' }),
@@ -363,10 +365,11 @@ export function issueTools() {
         title: Type.Optional(Type.String({ description: 'IssueUpdateInput.title' })),
         description: Type.Optional(Type.String({ description: 'IssueUpdateInput.description' })),
         priority: Type.Optional(
-          Type.Number({
+          Type.Integer({
             minimum: 0,
             maximum: 4,
-            description: 'IssueUpdateInput.priority (0 none, 1 urgent, 2 high, 3 normal, 4 low).',
+            description:
+              'IssueUpdateInput.priority (0 = No priority, 1 = Urgent, 2 = High, 3 = Medium, 4 = Low).',
           }),
         ),
         stateId: Type.Optional(Type.String({ description: 'IssueUpdateInput.stateId' })),
@@ -416,7 +419,7 @@ export function issueTools() {
           Type.String({ description: 'IssueUpdateInput.slaBreachesAt' }),
         ),
         slaStartedAt: Type.Optional(Type.String({ description: 'IssueUpdateInput.slaStartedAt' })),
-        slaType: Type.Optional(Type.String({ description: 'IssueUpdateInput.slaType' })),
+        slaType: Type.Optional(SlaDayCountTypeSchema),
         snoozedById: Type.Optional(Type.String({ description: 'IssueUpdateInput.snoozedById' })),
         snoozedUntilAt: Type.Optional(
           Type.String({ description: 'IssueUpdateInput.snoozedUntilAt' }),

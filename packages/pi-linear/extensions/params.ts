@@ -143,6 +143,10 @@ export const DOCUMENT_SORT_KEYS = [
   'updatedAt',
 ] as const;
 
+export const SlaDayCountTypeSchema = stringEnum(['all', 'onlyBusinessDays'], {
+  description: 'SLA day count type: all (calendar days, default) or onlyBusinessDays.',
+});
+
 export function filterParam(typeName: string, valueHints?: string) {
   return Type.Optional(
     Type.Record(Type.String(), Type.Any(), {
