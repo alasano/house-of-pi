@@ -147,6 +147,19 @@ export const SlaDayCountTypeSchema = stringEnum(['all', 'onlyBusinessDays'], {
   description: 'SLA day count type: all (calendar days, default) or onlyBusinessDays.',
 });
 
+export const DateResolutionTypeSchema = stringEnum(['month', 'quarter', 'halfYear', 'year'], {
+  description: 'Date resolution.',
+});
+
+export const FrequencyResolutionTypeSchema = stringEnum(['daily', 'weekly'], {
+  description: 'Update reminder frequency resolution (update mode only).',
+});
+
+export const DaySchema = stringEnum(
+  ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+  { description: 'Day of week for update reminders (update mode only).' },
+);
+
 export function filterParam(typeName: string, valueHints?: string) {
   return Type.Optional(
     Type.Record(Type.String(), Type.Any(), {

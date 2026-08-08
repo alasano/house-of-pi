@@ -8,6 +8,10 @@ import {
   sortParam,
   inputParam,
   INITIATIVE_SORT_KEYS,
+  stringEnum,
+  DateResolutionTypeSchema,
+  FrequencyResolutionTypeSchema,
+  DaySchema,
 } from '../params';
 import { INITIATIVE_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
@@ -24,6 +28,16 @@ import {
   renderLinearSaveInitiativeResult,
   renderLinearUnarchiveInitiativeCall,
 } from '../renderers/initiatives';
+
+const INITIATIVE_CREATE_ONLY = ['id'] as const;
+const INITIATIVE_UPDATE_ONLY = [
+  'frequencyResolution',
+  'trashed',
+  'updateReminderFrequency',
+  'updateReminderFrequencyInWeeks',
+  'updateRemindersDay',
+  'updateRemindersHour',
+] as const;
 
 export function initiativeTools() {
   return [
@@ -135,24 +149,38 @@ export function initiativeTools() {
       description:
         'Create or update an initiative. If initiativeId is provided, uses initiativeUpdate; otherwise uses initiativeCreate.',
       parameters: Type.Object({
-        initiativeId: Type.Optional(Type.String()),
+        initiativeId: Type.Optional(Type.String({ description: 'Initiative id for update mode.' })),
         color: Type.Optional(Type.String()),
         content: Type.Optional(Type.String()),
         description: Type.Optional(Type.String()),
         icon: Type.Optional(Type.String()),
-        id: Type.Optional(Type.String()),
+        id: Type.Optional(
+          Type.String({ description: 'InitiativeCreateInput.id (create mode only).' }),
+        ),
         name: Type.Optional(Type.String()),
         ownerId: Type.Optional(Type.String()),
         sortOrder: Type.Optional(Type.Number()),
-        status: Type.Optional(Type.String()),
+        status: Type.Optional(
+          stringEnum(['Proposed', 'Planned', 'Active', 'Completed', 'Canceled'], {
+            description: 'Initiative status.',
+          }),
+        ),
         targetDate: Type.Optional(Type.String()),
-        targetDateResolution: Type.Optional(Type.String()),
-        frequencyResolution: Type.Optional(Type.String()),
-        trashed: Type.Optional(Type.Boolean()),
-        updateReminderFrequency: Type.Optional(Type.Number()),
-        updateReminderFrequencyInWeeks: Type.Optional(Type.Number()),
-        updateRemindersDay: Type.Optional(Type.String()),
-        updateRemindersHour: Type.Optional(Type.Integer()),
+        targetDateResolution: Type.Optional(DateResolutionTypeSchema),
+        frequencyResolution: Type.Optional(FrequencyResolutionTypeSchema),
+        trashed: Type.Optional(Type.Boolean({ description: 'Update mode only.' })),
+        updateReminderFrequency: Type.Optional(Type.Number({ description: 'Update mode only.' })),
+        updateReminderFrequencyInWeeks: Type.Optional(
+          Type.Number({ description: 'Update mode only.' }),
+        ),
+        updateRemindersDay: Type.Optional(DaySchema),
+        updateRemindersHour: Type.Optional(
+          Type.Integer({
+            minimum: 0,
+            maximum: 23,
+            description: 'Hour of day (0-23) for update reminders (update mode only).',
+          }),
+        ),
         input: inputParam(
           'InitiativeCreateInput (initiativeId omitted) or InitiativeUpdateInput (initiativeId provided)',
           'Enum fields: status (Proposed, Planned, Active, Completed, Canceled); targetDateResolution (month, quarter, halfYear, year); update mode also: frequencyResolution (daily, weekly), updateRemindersDay (Sunday-Saturday).',
@@ -163,6 +191,15 @@ export function initiativeTools() {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
           const updateId = asString(params.initiativeId);
+
+          const invalidForMode = updateId
+            ? INITIATIVE_CREATE_ONLY.filter((key) => params[key] !== undefined)
+            : INITIATIVE_UPDATE_ONLY.filter((key) => params[key] !== undefined);
+          if (invalidForMode.length) {
+            throw new Error(
+              `Params not valid in ${updateId ? 'update' : 'create'} mode: ${invalidForMode.join(', ')}.`,
+            );
+          }
 
           const input = {
             ...rawInput,

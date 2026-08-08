@@ -121,10 +121,12 @@ export function milestoneTools() {
       description:
         'Create or update a project milestone. If milestoneId is provided, uses projectMilestoneUpdate; otherwise uses projectMilestoneCreate.',
       parameters: Type.Object({
-        milestoneId: Type.Optional(Type.String()),
+        milestoneId: Type.Optional(Type.String({ description: 'Milestone id for update mode.' })),
         description: Type.Optional(Type.String()),
         descriptionData: Type.Optional(GenericObjectSchema),
-        id: Type.Optional(Type.String()),
+        id: Type.Optional(
+          Type.String({ description: 'ProjectMilestoneCreateInput.id (create mode only).' }),
+        ),
         name: Type.Optional(Type.String()),
         projectId: Type.Optional(Type.String()),
         sortOrder: Type.Optional(Type.Number()),
@@ -138,6 +140,10 @@ export function milestoneTools() {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
           const updateId = asString(params.milestoneId);
+
+          if (updateId && params.id !== undefined) {
+            throw new Error('Params not valid in update mode: id.');
+          }
 
           const input = {
             ...rawInput,
