@@ -5,12 +5,14 @@ import {
   PaginationParams,
   paginationVariables,
   filterParam,
+  sortParam,
   inputParam,
+  DOCUMENT_SORT_KEYS,
   TeamConvenienceParams,
 } from '../params';
 import { DOCUMENT_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
-import { compactObject, asObject, asString } from '../util';
+import { compactObject, asObject, asObjectArray, asString } from '../util';
 import {
   renderLinearCreateDocumentCall,
   renderLinearDeleteDocumentCall,
@@ -62,6 +64,7 @@ export function documentTools() {
       parameters: Type.Object({
         ...PaginationParams,
         filter: filterParam('DocumentFilter'),
+        sort: sortParam('DocumentSortInput', DOCUMENT_SORT_KEYS),
       }),
       renderCall: renderLinearDocumentListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -69,6 +72,7 @@ export function documentTools() {
           const variables = compactObject({
             ...paginationVariables(params, 20),
             filter: asObject(params.filter),
+            sort: asObjectArray(params.sort),
           });
 
           const data = await linearGraphQL<{
@@ -83,6 +87,7 @@ export function documentTools() {
               $includeArchived: Boolean
               $last: Int
               $orderBy: PaginationOrderBy
+              $sort: [DocumentSortInput!]
             ) {
               documents(
                 after: $after
@@ -92,6 +97,7 @@ export function documentTools() {
                 includeArchived: $includeArchived
                 last: $last
                 orderBy: $orderBy
+                sort: $sort
               ) {
                 nodes {
                   ${DOCUMENT_SELECTION}
