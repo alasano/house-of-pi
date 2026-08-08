@@ -196,9 +196,9 @@ export function initiativeTools() {
           const rawInput = asObject(params.input) || {};
           const updateId = asString(params.initiativeId);
 
-          const invalidForMode = updateId
-            ? INITIATIVE_CREATE_ONLY.filter((key) => params[key] !== undefined)
-            : INITIATIVE_UPDATE_ONLY.filter((key) => params[key] !== undefined);
+          const invalidForMode = (
+            updateId ? INITIATIVE_CREATE_ONLY : INITIATIVE_UPDATE_ONLY
+          ).filter((key) => params[key] !== undefined || rawInput[key] !== undefined);
           if (invalidForMode.length) {
             throw new Error(
               `Params not valid in ${updateId ? 'update' : 'create'} mode: ${invalidForMode.join(', ')}.`,

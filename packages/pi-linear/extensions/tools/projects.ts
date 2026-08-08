@@ -231,9 +231,9 @@ export function projectTools() {
           const rawInput = asObject(params.input) || {};
           const updateId = asString(params.projectId);
 
-          const invalidForMode = updateId
-            ? PROJECT_CREATE_ONLY.filter((key) => params[key] !== undefined)
-            : PROJECT_UPDATE_ONLY.filter((key) => params[key] !== undefined);
+          const invalidForMode = (updateId ? PROJECT_CREATE_ONLY : PROJECT_UPDATE_ONLY).filter(
+            (key) => params[key] !== undefined || rawInput[key] !== undefined,
+          );
           if (invalidForMode.length) {
             throw new Error(
               `Params not valid in ${updateId ? 'update' : 'create'} mode: ${invalidForMode.join(', ')}.`,

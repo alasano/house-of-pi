@@ -141,7 +141,7 @@ export function milestoneTools() {
           const rawInput = asObject(params.input) || {};
           const updateId = asString(params.milestoneId);
 
-          if (updateId && params.id !== undefined) {
+          if (updateId && (params.id !== undefined || rawInput.id !== undefined)) {
             throw new Error('Params not valid in update mode: id.');
           }
 
