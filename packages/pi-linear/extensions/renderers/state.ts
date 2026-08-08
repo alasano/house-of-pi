@@ -2,6 +2,7 @@ export type LinearToolRenderContext = {
   args?: unknown;
   toolCallId?: string;
   invalidate?: () => void;
+  isError?: boolean;
 };
 
 let defaultJsonView = false;

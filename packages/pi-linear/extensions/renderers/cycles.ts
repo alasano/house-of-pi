@@ -15,6 +15,7 @@ import {
   mutedStyle,
   renderLinearToolCall,
   renderResponsiveTable,
+  textContent,
   toolOutputStyle,
   truncate,
   truncateLine,
@@ -45,6 +46,7 @@ type CycleLike = {
 type CycleResultDetails = {
   cycles?: CycleLike[];
   cycle?: CycleLike;
+  success?: boolean;
 };
 
 const CYCLE_LIST_PREVIEW_LIMIT = 20;
@@ -197,10 +199,21 @@ export function renderLinearCycleMutationResult(
   context: LinearToolRenderContext,
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Working…'), 0, 0);
+  if (context.isError) {
+    const message = cleanOneLine(textContent(result)) || 'Cycle operation failed.';
+    return new Text(theme.fg('error', `✗ ${message}`), 0, 0);
+  }
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
-  const cycle = cycleDetails(result).cycle;
-  if (!cycle) return new Text(theme.fg('muted', 'Cycle operation completed.'), 0, 0);
+  const details = cycleDetails(result);
+  if (details.success === false) {
+    return new Text(theme.fg('error', '✗ Cycle operation failed.'), 0, 0);
+  }
+
+  const cycle = details.cycle;
+  if (!cycle) {
+    return new Text(theme.fg('error', '✗ Cycle operation returned no cycle.'), 0, 0);
+  }
 
   const range = [dateText(cycle.startsAt), dateText(cycle.endsAt)].filter(Boolean).join(' → ');
   const lines = [`${theme.fg('success', '✓')} ${theme.fg('toolOutput', cycleName(cycle))}`];

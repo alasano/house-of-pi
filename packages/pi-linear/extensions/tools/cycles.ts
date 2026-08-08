@@ -12,6 +12,23 @@ import {
   renderLinearCycleMutationResult,
 } from '../renderers/cycles';
 
+type CycleMutationPayload = {
+  success: boolean;
+  cycle: JsonObject | null;
+};
+
+function requireCycle(payload: CycleMutationPayload, operation: 'create' | 'update'): JsonObject {
+  if (!payload.success) {
+    throw new Error(`Linear failed to ${operation} the cycle.`);
+  }
+  if (!payload.cycle) {
+    throw new Error(
+      `Linear reported that it ${operation === 'create' ? 'created' : 'updated'} the cycle but returned no cycle.`,
+    );
+  }
+  return payload.cycle;
+}
+
 export function cycleTools() {
   return [
     defineTool({
@@ -132,12 +149,11 @@ export function cycleTools() {
             endsAt: params.endsAt,
           });
 
-          const data = await linearGraphQL<{
-            cycleCreate: { cycle: JsonObject };
-          }>(
+          const data = await linearGraphQL<{ cycleCreate: CycleMutationPayload }>(
             apiKey,
             `mutation CreateCycle($input: CycleCreateInput!) {
               cycleCreate(input: $input) {
+                success
                 cycle {
                   ${CYCLE_SELECTION}
                 }
@@ -147,10 +163,10 @@ export function cycleTools() {
             signal,
           );
 
-          const cycle = data.cycleCreate.cycle;
+          const cycle = requireCycle(data.cycleCreate, 'create');
           return {
-            content: [{ type: 'text', text: JSON.stringify({ cycle }, null, 2) }],
-            details: { cycle },
+            content: [{ type: 'text', text: JSON.stringify({ success: true, cycle }, null, 2) }],
+            details: { success: true, cycle },
           };
         });
       },
@@ -184,12 +200,11 @@ export function cycleTools() {
             completedAt: params.completedAt,
           });
 
-          const data = await linearGraphQL<{
-            cycleUpdate: { cycle: JsonObject };
-          }>(
+          const data = await linearGraphQL<{ cycleUpdate: CycleMutationPayload }>(
             apiKey,
             `mutation UpdateCycle($id: String!, $input: CycleUpdateInput!) {
               cycleUpdate(id: $id, input: $input) {
+                success
                 cycle {
                   ${CYCLE_SELECTION}
                 }
@@ -199,10 +214,10 @@ export function cycleTools() {
             signal,
           );
 
-          const cycle = data.cycleUpdate.cycle;
+          const cycle = requireCycle(data.cycleUpdate, 'update');
           return {
-            content: [{ type: 'text', text: JSON.stringify({ cycle }, null, 2) }],
-            details: { cycle },
+            content: [{ type: 'text', text: JSON.stringify({ success: true, cycle }, null, 2) }],
+            details: { success: true, cycle },
           };
         });
       },
