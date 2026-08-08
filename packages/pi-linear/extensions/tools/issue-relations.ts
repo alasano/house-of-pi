@@ -1,7 +1,7 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { withLinearAuth, linearGraphQL, resolveIssueId } from '../client';
-import { PaginationParams, paginationVariables } from '../params';
+import { PaginationParams, paginationVariables, stringEnum } from '../params';
 import { ISSUE_RELATION_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
 import { compactObject } from '../util';
@@ -87,8 +87,8 @@ export function issueRelationTools() {
         relatedIssueId: Type.String({
           description: 'Related issue identifier (e.g. ENG-456) or UUID.',
         }),
-        type: Type.String({
-          description: 'Relation type: blocks, duplicate, related, or similar.',
+        type: stringEnum(['blocks', 'duplicate', 'related', 'similar'], {
+          description: 'Relation type.',
         }),
       }),
       renderCall: renderLinearCreateIssueRelationCall,
@@ -138,7 +138,11 @@ export function issueRelationTools() {
       description: 'Update an issue relation by id.',
       parameters: Type.Object({
         id: Type.String(),
-        type: Type.Optional(Type.String()),
+        type: Type.Optional(
+          Type.String({
+            description: 'Relation type. Known values: blocks, duplicate, related, similar.',
+          }),
+        ),
         issueId: Type.Optional(Type.String()),
         relatedIssueId: Type.Optional(Type.String()),
       }),
