@@ -342,6 +342,7 @@ export const CUSTOM_VIEW_SELECTION = `
     filterData
     shared
     slugId
+    archivedAt
     createdAt
     updatedAt
     modelName
@@ -365,6 +366,8 @@ export const CYCLE_SELECTION = `
     startsAt
     endsAt
     completedAt
+    archivedAt
+    autoArchivedAt
     isActive
     isFuture
     isPast

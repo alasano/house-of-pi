@@ -115,6 +115,59 @@ describe('custom view tools', () => {
     expect(text).toBeDefined();
   });
 
+  it('requests and renders custom view archive state only when present', async () => {
+    const tool = toolByName(tools, 'linear_list_views');
+    clientMocks.linearGraphQL.mockReset();
+    clientMocks.linearGraphQL.mockResolvedValue({
+      customViews: {
+        nodes: [
+          {
+            id: 'current-view',
+            name: 'Current view',
+            description: 'Current work',
+            icon: 'Search',
+            archivedAt: null,
+          },
+          {
+            id: 'archived-view',
+            name: 'Archived view',
+            description: 'Historical work',
+            icon: 'Archive',
+            archivedAt: '2026-07-12T18:30:00.000Z',
+          },
+        ],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: null,
+          endCursor: null,
+        },
+      },
+    });
+
+    const result = await executeTool(tool, { includeArchived: true });
+    const query = clientMocks.linearGraphQL.mock.calls[0]?.[1] as string;
+    expect(query).toMatch(/\barchivedAt\b/);
+    expect((result as { content: Array<{ text: string }> }).content[0]?.text).toContain(
+      '2026-07-12T18:30:00.000Z',
+    );
+
+    const text = renderedText(tool, result);
+    const lines = text.split('\n');
+    const header = lines.find((line) => line.includes('Archived') && line.includes('Name'));
+    const currentLine = lines.find((line) => line.includes('Current view'));
+    const archivedLine = lines.find((line) => line.includes('Archived view'));
+    expect(header?.indexOf('Archived')).toBeLessThan(header?.indexOf('Name') ?? -1);
+    expect(currentLine).toContain('—');
+    expect(archivedLine).toContain('2026-07-12');
+
+    const currentOnly = {
+      content: [{ type: 'text' as const, text: '{}' }],
+      details: { views: [{ id: 'current-view', name: 'Current view', archivedAt: null }] },
+    };
+    expect(renderedText(tool, currentOnly)).not.toContain('Archived');
+  });
+
   it('delete_view renders success message', () => {
     const tool = toolByName(tools, 'linear_delete_view');
     const result = { content: [{ type: 'text' as const, text: '{}' }], details: { success: true } };
@@ -165,11 +218,18 @@ describe('cycle tools', () => {
     expect(text).toContain('progress 25%');
   });
 
-  it('requests Linear authoritative cycle status fields', async () => {
+  it('requests Linear authoritative cycle status and archive fields', async () => {
     const tool = toolByName(tools, 'linear_list_cycles');
     clientMocks.linearGraphQL.mockResolvedValue({
       cycles: {
-        nodes: [],
+        nodes: [
+          {
+            id: 'cycle-1',
+            name: 'Archived cycle',
+            archivedAt: '2026-07-12T18:30:00.000Z',
+            autoArchivedAt: '2026-07-12T18:30:00.000Z',
+          },
+        ],
         pageInfo: {
           hasNextPage: false,
           hasPreviousPage: false,
@@ -179,15 +239,87 @@ describe('cycle tools', () => {
       },
     });
 
-    await executeTool(tool, {});
+    const result = await executeTool(tool, {});
 
     const query = clientMocks.linearGraphQL.mock.calls[0]?.[1] as string;
+    expect(query).toMatch(/\barchivedAt\b/);
+    expect(query).toMatch(/\bautoArchivedAt\b/);
     expect(query).toMatch(/\bisActive\b/);
     expect(query).toMatch(/\bisFuture\b/);
     expect(query).toMatch(/\bisPast\b/);
     expect(query).toMatch(/\bisNext\b/);
     expect(query).toMatch(/\bisPrevious\b/);
     expect(query).toMatch(/\bprogress\b/);
+    expect((result as { content: Array<{ text: string }> }).content[0]?.text).toContain(
+      '2026-07-12T18:30:00.000Z',
+    );
+  });
+
+  it('renders cycle archive state immediately before the cycle name only when present', () => {
+    const tool = toolByName(tools, 'linear_list_cycles');
+    const result = {
+      content: [{ type: 'text' as const, text: '{}' }],
+      details: {
+        cycles: [
+          {
+            id: 'current-cycle',
+            name: 'Current cycle',
+            startsAt: '2026-08-01T00:00:00.000Z',
+            endsAt: '2026-08-08T00:00:00.000Z',
+            isActive: true,
+            progress: 0.42,
+            archivedAt: null,
+            team: { key: 'PI' },
+          },
+          {
+            id: 'manually-archived-cycle',
+            name: 'Manually archived cycle',
+            startsAt: '2026-06-01T00:00:00.000Z',
+            endsAt: '2026-06-08T00:00:00.000Z',
+            completedAt: '2026-06-08T00:00:00.000Z',
+            isPast: true,
+            progress: 0.64,
+            archivedAt: '2026-07-02T12:00:00.000Z',
+            autoArchivedAt: null,
+            team: { key: 'PI' },
+          },
+          {
+            id: 'archived-cycle',
+            name: 'Archived cycle',
+            startsAt: '2026-07-01T00:00:00.000Z',
+            endsAt: '2026-07-08T00:00:00.000Z',
+            completedAt: '2026-07-08T00:00:00.000Z',
+            isPast: true,
+            progress: 0.78,
+            archivedAt: '2026-08-02T12:00:00.000Z',
+            autoArchivedAt: '2026-08-02T12:00:00.000Z',
+            team: { key: 'PI' },
+          },
+        ],
+      },
+    };
+
+    const text = renderedText(tool, result, renderCtx, 160);
+    const lines = text.split('\n');
+    const header = lines.find((line) => line.includes('Archived') && line.includes('Cycle'));
+    const currentLine = lines.find((line) => line.includes('Current cycle'));
+    const manuallyArchivedLine = lines.find((line) => line.includes('Manually archived cycle'));
+    const archivedLine = lines.find((line) => line.includes('Archived cycle'));
+    expect(header?.indexOf('Archived')).toBeLessThan(header?.indexOf('Cycle') ?? -1);
+    expect(currentLine).toContain('—');
+    expect(manuallyArchivedLine).toContain('2026-07-02');
+    expect(manuallyArchivedLine).not.toContain('(auto)');
+    expect(archivedLine).toContain('2026-08-02 (auto)');
+
+    const responsiveText = renderedText(tool, result, renderCtx, 70);
+    expect(responsiveText).toContain('Archived');
+    expect(responsiveText).toContain('2026-08-02 (auto)');
+
+    const currentOnly = {
+      content: [{ type: 'text' as const, text: '{}' }],
+      details: { cycles: [{ id: 'current-cycle', name: 'Current cycle', isActive: true }] },
+    };
+    expect(renderedText(tool, currentOnly)).not.toContain('Archived');
   });
 
   it('renders cycle status from Linear fields instead of inferring it from dates', () => {

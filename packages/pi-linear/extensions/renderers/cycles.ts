@@ -38,6 +38,8 @@ type CycleLike = {
   startsAt?: string | null;
   endsAt?: string | null;
   completedAt?: string | null;
+  archivedAt?: string | null;
+  autoArchivedAt?: string | null;
   isActive?: boolean | null;
   isFuture?: boolean | null;
   isPast?: boolean | null;
@@ -100,6 +102,18 @@ function progressText(cycle: CycleLike): string | undefined {
   return `${Math.round(cycle.progress * 100)}%`;
 }
 
+function archivedText(cycle: CycleLike): string | undefined {
+  const autoArchivedAt = dateText(cycle.autoArchivedAt);
+  const archivedAt = dateText(cycle.archivedAt) ?? autoArchivedAt;
+  if (!archivedAt) return undefined;
+  return autoArchivedAt ? `${archivedAt} (auto)` : archivedAt;
+}
+
+function archivedMetadata(cycle: CycleLike): string | undefined {
+  const archived = archivedText(cycle);
+  return archived ? `archived ${archived}` : undefined;
+}
+
 function statusStyle(theme: Theme, value: string): (text: string) => string {
   if (value.startsWith('completed')) return (text) => theme.fg('success', text);
   if (value.startsWith('active')) return (text) => theme.fg('warning', text);
@@ -122,6 +136,7 @@ function formatCycleListLine(cycle: CycleLike, theme: Theme, width: number): str
     status,
     progress ? `progress ${progress}` : undefined,
     teamText(cycle),
+    archivedMetadata(cycle),
     descriptionSnippet(cycle),
   ].filter((part): part is string => !!part);
   const suffix = parts.length ? theme.fg('dim', ` · ${parts.join(' · ')}`) : '';
@@ -161,9 +176,21 @@ const CYCLE_TABLE_COLUMNS: TableColumn<CycleLike>[] = [
   },
 ];
 
+const CYCLE_ARCHIVED_COLUMN: TableColumn<CycleLike> = {
+  id: 'archived',
+  label: 'Archived',
+  width: 17,
+  value: (cycle) => archivedText(cycle) ?? '—',
+  style: (theme, value) => (value === '—' ? dimStyle(theme) : (text) => theme.fg('warning', text)),
+};
+
 function renderCycleTable(cycles: CycleLike[], theme: Theme, width: number): string[] {
+  const columns = cycles.some((cycle) => archivedText(cycle))
+    ? [...CYCLE_TABLE_COLUMNS, CYCLE_ARCHIVED_COLUMN]
+    : CYCLE_TABLE_COLUMNS;
+
   return renderResponsiveTable(cycles, theme, width, {
-    columns: CYCLE_TABLE_COLUMNS,
+    columns,
     primary: {
       label: 'Cycle',
       minWidth: 20,
@@ -249,6 +276,7 @@ export function renderLinearCycleMutationResult(
     statusText(cycle),
     progress ? `progress ${progress}` : undefined,
     teamText(cycle),
+    archivedMetadata(cycle),
   ].filter((part): part is string => !!part);
   if (parts.length) lines.push(theme.fg('dim', parts.join(' · ')));
 

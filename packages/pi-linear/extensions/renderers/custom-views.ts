@@ -39,6 +39,7 @@ type CustomViewLike = {
   shared?: boolean | null;
   slugId?: string | null;
   modelName?: string | null;
+  archivedAt?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   team?: CustomViewTeam | null;
@@ -76,6 +77,16 @@ function descriptionSnippet(view: CustomViewLike): string | undefined {
   return truncate(cleanOneLine(description), DESCRIPTION_LIMIT);
 }
 
+function archivedText(view: CustomViewLike): string | undefined {
+  const archivedAt = asString(view.archivedAt);
+  return archivedAt?.slice(0, 10);
+}
+
+function archivedMetadata(view: CustomViewLike): string | undefined {
+  const archived = archivedText(view);
+  return archived ? `archived ${archived}` : undefined;
+}
+
 function metadataParts(view: CustomViewLike): string[] {
   const icon = asString(view.icon);
   const shared = view.shared;
@@ -86,6 +97,7 @@ function metadataParts(view: CustomViewLike): string[] {
     icon ? `icon: ${icon}` : undefined,
     typeof shared === 'boolean' ? (shared ? 'shared' : 'private') : undefined,
     filterKeys ? `${filterKeys} filter(s)` : 'no filter',
+    archivedMetadata(view),
   ].filter((part): part is string => !!part);
 }
 
@@ -120,9 +132,21 @@ const VIEW_TABLE_COLUMNS: TableColumn<CustomViewLike>[] = [
   },
 ];
 
+const VIEW_ARCHIVED_COLUMN: TableColumn<CustomViewLike> = {
+  id: 'archived',
+  label: 'Archived',
+  width: 10,
+  value: (view) => archivedText(view) ?? '—',
+  style: (theme, value) => (value === '—' ? dimStyle(theme) : (text) => theme.fg('warning', text)),
+};
+
 function renderViewTable(views: CustomViewLike[], theme: Theme, width: number): string[] {
+  const columns = views.some((view) => archivedText(view))
+    ? [...VIEW_TABLE_COLUMNS, VIEW_ARCHIVED_COLUMN]
+    : VIEW_TABLE_COLUMNS;
+
   return renderResponsiveTable(views, theme, width, {
-    columns: VIEW_TABLE_COLUMNS,
+    columns,
     primary: {
       label: 'Name',
       minWidth: 28,
