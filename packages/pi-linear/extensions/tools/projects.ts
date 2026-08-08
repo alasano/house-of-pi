@@ -219,7 +219,7 @@ export function projectTools() {
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
-          const updateId = asString(params.projectId) || asString(rawInput.id);
+          const updateId = asString(params.projectId);
 
           const invalidForMode = updateId
             ? PROJECT_CREATE_ONLY.filter((key) => params[key] !== undefined)
