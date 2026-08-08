@@ -21,6 +21,7 @@ import {
   type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type WorkflowStateTeam = {
@@ -184,6 +185,7 @@ export function renderLinearIssueStatusListResult(
 ): Text | LinearListResultComponent<WorkflowStateLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading issue statuses…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const states = Array.isArray(workflowStateDetails(result).states)
     ? (workflowStateDetails(result).states as WorkflowStateLike[])

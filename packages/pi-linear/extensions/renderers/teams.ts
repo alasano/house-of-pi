@@ -19,6 +19,7 @@ import {
   type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type WorkflowStateLike = {
@@ -218,6 +219,7 @@ export function renderLinearTeamListResult(
 ): Text | LinearListResultComponent<TeamLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading teams…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const teams = Array.isArray(teamDetails(result).teams)
     ? (teamDetails(result).teams as TeamLike[])
@@ -240,6 +242,7 @@ export function renderLinearTeamResult(actionLabel: string) {
   ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
     if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) return renderLinearErrorResult(result, theme);
 
     return renderTeamCard(actionLabel, teamDetails(result).team, theme);
   };

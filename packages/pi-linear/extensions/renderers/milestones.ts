@@ -22,6 +22,7 @@ import {
   type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type MilestoneLike = {
@@ -178,6 +179,7 @@ function renderMilestoneCard(
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const milestone = milestoneDetails(result).milestone;
   if (!milestone) {
@@ -234,6 +236,7 @@ export function renderLinearMilestoneListResult(
 ): Text | LinearListResultComponent<MilestoneLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading milestones…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const milestones = Array.isArray(milestoneDetails(result).milestones)
     ? (milestoneDetails(result).milestones as MilestoneLike[])
@@ -261,7 +264,7 @@ export function renderLinearMilestoneSaveResult() {
     result: AgentToolResult<any>,
     options: ToolRenderResultOptions,
     theme: Theme,
-    context: { args?: unknown },
+    context: LinearToolRenderContext,
   ): Text => {
     const args = (context.args ?? {}) as { milestoneId?: unknown };
     const actionLabel = asString(args.milestoneId) ? 'Updated milestone' : 'Created milestone';
@@ -273,10 +276,11 @@ export function renderLinearMilestoneDeleteResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
-  context: { args?: unknown },
+  context: LinearToolRenderContext,
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Deleting milestone…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const details = milestoneDetails(result);
   const args = (context.args ?? {}) as { milestoneId?: unknown };

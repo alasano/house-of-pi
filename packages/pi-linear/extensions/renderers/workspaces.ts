@@ -12,6 +12,7 @@ import {
   renderLinearToolCall,
   type LinearToolRenderContext,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type WorkspaceSwitchResultDetails = {
@@ -34,6 +35,7 @@ export function renderLinearSwitchWorkspaceResult(
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Switching workspace…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const active = asString(workspaceSwitchDetails(result).active) ?? 'unknown';
   return new Text(

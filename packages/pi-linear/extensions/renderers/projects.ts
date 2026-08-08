@@ -21,6 +21,7 @@ import {
   type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type ProjectPerson = {
@@ -74,7 +75,7 @@ function projectDetails(result: AgentToolResult<any>): ProjectResultDetails {
   return (result.details ?? {}) as ProjectResultDetails;
 }
 
-function argsObject(context: { args?: unknown }): ToolArgs {
+function argsObject(context: LinearToolRenderContext): ToolArgs {
   return context.args && typeof context.args === 'object' && !Array.isArray(context.args)
     ? (context.args as ToolArgs)
     : {};
@@ -295,7 +296,7 @@ function renderProjectCard(
   return new Text(text, 0, 0);
 }
 
-function isProjectUpdate(context: { args?: unknown }): boolean {
+function isProjectUpdate(context: LinearToolRenderContext): boolean {
   const args = argsObject(context);
   return !!asString(args.projectId);
 }
@@ -354,6 +355,7 @@ export function renderLinearProjectListResult(
 ): Text | LinearListResultComponent<ProjectLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading projects…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const projects = Array.isArray(projectDetails(result).projects)
     ? (projectDetails(result).projects as ProjectLike[])
@@ -376,6 +378,7 @@ export function renderLinearProjectResult(actionLabel: string) {
   ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
     if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) return renderLinearErrorResult(result, theme);
 
     return renderProjectCard(actionLabel, projectDetails(result).project, theme);
   };
@@ -385,11 +388,12 @@ export function renderLinearSaveProjectResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
-  context: { args?: unknown },
+  context: LinearToolRenderContext,
 ): Text {
   const actionLabel = isProjectUpdate(context) ? 'Updated project' : 'Created project';
   if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   return renderProjectCard(actionLabel, projectDetails(result).project, theme);
 }
@@ -399,11 +403,12 @@ export function renderLinearProjectSuccessResult(defaultActionLabel: string) {
     result: AgentToolResult<any>,
     options: ToolRenderResultOptions,
     theme: Theme,
-    context: { args?: unknown },
+    context: LinearToolRenderContext,
   ): Text => {
     if (options.isPartial)
       return new Text(theme.fg('warning', `${defaultActionLabel} project…`), 0, 0);
     if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) return renderLinearErrorResult(result, theme);
 
     const details = projectDetails(result);
     const args = argsObject(context);

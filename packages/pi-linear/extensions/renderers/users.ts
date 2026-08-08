@@ -21,6 +21,7 @@ import {
   type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type UserLike = {
@@ -216,6 +217,7 @@ export function renderLinearUserListResult(
 ): Text | LinearListResultComponent<UserLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading users…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const users = Array.isArray(userDetails(result).users)
     ? (userDetails(result).users as UserLike[])
@@ -237,6 +239,7 @@ export function renderLinearUserResult(
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading user…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   return renderUserCard(userDetails(result).user, theme);
 }

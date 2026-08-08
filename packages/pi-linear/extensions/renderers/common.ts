@@ -86,6 +86,11 @@ export function shouldShowJson(
   return options.expanded !== getDefaultJsonView();
 }
 
+export function renderLinearErrorResult(result: AgentToolResult<any>, theme: Theme): Text {
+  const message = cleanOneLine(textContent(result)) || 'Linear request failed.';
+  return new Text(theme.fg('error', `✗ ${message}`), 0, 0);
+}
+
 export function jsonHint(): string {
   return `(${keyHint('app.tools.expand', 'show full JSON')})`;
 }

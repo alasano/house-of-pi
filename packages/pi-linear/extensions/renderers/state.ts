@@ -1,5 +1,6 @@
 export type LinearToolRenderContext = {
   args?: unknown;
+  isError?: boolean;
   toolCallId?: string;
   invalidate?: () => void;
 };

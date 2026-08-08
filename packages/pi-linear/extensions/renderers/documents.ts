@@ -22,6 +22,7 @@ import {
   type LinearToolRenderContext,
   type TableColumn,
   type ToolArgs,
+  renderLinearErrorResult,
 } from './common';
 
 type NamedRef = {
@@ -250,6 +251,7 @@ export function renderLinearDocumentListResult(
 ): Text | LinearListResultComponent<DocumentLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading documents…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) return renderLinearErrorResult(result, theme);
 
   const documents = Array.isArray(documentDetails(result).documents)
     ? (documentDetails(result).documents as DocumentLike[])
@@ -272,6 +274,7 @@ export function renderLinearDocumentResult(actionLabel: string) {
   ): Text => {
     if (options.isPartial) return new Text(theme.fg('warning', `${actionLabel}…`), 0, 0);
     if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) return renderLinearErrorResult(result, theme);
 
     const document = documentDetails(result).document;
     if (!document) {
@@ -297,11 +300,12 @@ export function renderLinearDocumentSuccessResult(defaultActionLabel: string) {
     result: AgentToolResult<any>,
     options: ToolRenderResultOptions,
     theme: Theme,
-    context: { args?: unknown },
+    context: LinearToolRenderContext,
   ): Text => {
     if (options.isPartial)
       return new Text(theme.fg('warning', `${defaultActionLabel} document…`), 0, 0);
     if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) return renderLinearErrorResult(result, theme);
 
     const details = documentDetails(result);
     const args = (context.args ?? {}) as ToolArgs;
