@@ -85,7 +85,7 @@ export function projectLabelTools() {
       label: 'Linear Create Project Label',
       description: 'Create a project label.',
       parameters: Type.Object({
-        name: Type.Optional(Type.String()),
+        name: Type.Optional(Type.String({ description: 'Required (here or in input).' })),
         description: Type.Optional(Type.String()),
         color: Type.Optional(Type.String()),
         parentId: Type.Optional(Type.String()),

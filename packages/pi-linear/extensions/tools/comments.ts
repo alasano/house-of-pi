@@ -87,10 +87,16 @@ export function commentTools() {
       parameters: Type.Object({
         body: Type.Optional(Type.String()),
         bodyData: Type.Optional(GenericObjectSchema),
-        createAsUser: Type.Optional(Type.String()),
+        createAsUser: Type.Optional(Type.String({ description: 'OAuth actor=app tokens only.' })),
         createOnSyncedSlackThread: Type.Optional(Type.Boolean()),
-        createdAt: Type.Optional(Type.String()),
-        displayIconUrl: Type.Optional(Type.String()),
+        createdAt: Type.Optional(
+          Type.String({
+            description: 'ISO-8601 datetime in the past (for imports).',
+          }),
+        ),
+        displayIconUrl: Type.Optional(
+          Type.String({ description: 'OAuth actor=app with createAsUser only.' }),
+        ),
         doNotSubscribeToIssue: Type.Optional(Type.Boolean()),
         documentContentId: Type.Optional(Type.String()),
         id: Type.Optional(Type.String()),

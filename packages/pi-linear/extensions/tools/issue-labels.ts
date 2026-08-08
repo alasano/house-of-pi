@@ -109,15 +109,17 @@ export function issueLabelTools() {
       description:
         'Create an issue label via issueLabelCreate. Supports top-level fields and raw input.',
       parameters: Type.Object({
-        name: Type.Optional(Type.String()),
+        name: Type.Optional(Type.String({ description: 'Required (here or in input).' })),
         color: Type.Optional(Type.String()),
         description: Type.Optional(Type.String()),
         id: Type.Optional(Type.String()),
         isGroup: Type.Optional(Type.Boolean()),
         parentId: Type.Optional(Type.String()),
-        retiredAt: Type.Optional(Type.String()),
+        retiredAt: Type.Optional(Type.String({ description: 'ISO-8601 datetime.' })),
         ...TeamConvenienceParams,
-        replaceTeamLabels: Type.Optional(Type.Boolean()),
+        replaceTeamLabels: Type.Optional(
+          Type.Boolean({ description: 'Replace existing team labels with the same name.' }),
+        ),
         input: inputParam('IssueLabelCreateInput'),
       }),
       renderCall: renderLinearCreateIssueLabelCall,
@@ -200,8 +202,13 @@ export function issueLabelTools() {
         color: Type.Optional(Type.String()),
         parentId: Type.Optional(Type.String()),
         isGroup: Type.Optional(Type.Boolean()),
-        retiredAt: nullable(Type.String(), 'Set to null to restore a retired label.'),
-        replaceTeamLabels: Type.Optional(Type.Boolean()),
+        retiredAt: nullable(
+          Type.String(),
+          'ISO-8601 datetime. Set to null to restore a retired label.',
+        ),
+        replaceTeamLabels: Type.Optional(
+          Type.Boolean({ description: 'Replace existing team labels with the same name.' }),
+        ),
         input: inputParam('IssueLabelUpdateInput'),
       }),
       renderCall: renderLinearUpdateIssueLabelCall,

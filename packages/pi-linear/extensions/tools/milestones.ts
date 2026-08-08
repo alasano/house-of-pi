@@ -127,10 +127,10 @@ export function milestoneTools() {
         id: Type.Optional(
           Type.String({ description: 'ProjectMilestoneCreateInput.id (create mode only).' }),
         ),
-        name: Type.Optional(Type.String()),
-        projectId: Type.Optional(Type.String()),
+        name: Type.Optional(Type.String({ description: 'Required in create mode.' })),
+        projectId: Type.Optional(Type.String({ description: 'Required in create mode.' })),
         sortOrder: Type.Optional(Type.Number()),
-        targetDate: Type.Optional(Type.String()),
+        targetDate: Type.Optional(Type.String({ description: 'ISO date (YYYY-MM-DD).' })),
         input: inputParam(
           'ProjectMilestoneCreateInput (milestoneId omitted) or ProjectMilestoneUpdateInput (milestoneId provided)',
         ),

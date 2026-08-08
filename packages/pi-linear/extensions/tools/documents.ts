@@ -177,7 +177,7 @@ export function documentTools() {
         sortOrder: Type.Optional(Type.Number()),
         subscriberIds: Type.Optional(Type.Array(Type.String())),
         ...TeamConvenienceParams,
-        title: Type.Optional(Type.String()),
+        title: Type.Optional(Type.String({ description: 'Required (here or in input).' })),
         input: inputParam('DocumentCreateInput'),
       }),
       renderCall: renderLinearCreateDocumentCall,
@@ -262,7 +262,7 @@ export function documentTools() {
         color: Type.Optional(Type.String()),
         content: Type.Optional(Type.String()),
         cycleId: Type.Optional(Type.String()),
-        hiddenAt: nullable(Type.String(), 'Set to null to unhide.'),
+        hiddenAt: nullable(Type.String(), 'ISO-8601 datetime. Set to null to unhide.'),
         icon: Type.Optional(Type.String()),
         initiativeId: Type.Optional(Type.String()),
         issueId: Type.Optional(Type.String()),
@@ -356,7 +356,8 @@ export function documentTools() {
     defineTool({
       name: 'linear_delete_document',
       label: 'Linear Delete Document',
-      description: 'Delete a document by id.',
+      description:
+        'Move a document to trash by id (archived, not permanently removed; restorable via linear_unarchive_document).',
       parameters: Type.Object({
         documentId: Type.String(),
       }),

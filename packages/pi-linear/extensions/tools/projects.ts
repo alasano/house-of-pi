@@ -159,7 +159,7 @@ export function projectTools() {
         id: Type.Optional(
           Type.String({ description: 'ProjectCreateInput.id (create mode only).' }),
         ),
-        name: Type.Optional(Type.String()),
+        name: Type.Optional(Type.String({ description: 'Required in create mode.' })),
         description: Type.Optional(Type.String()),
         content: Type.Optional(Type.String()),
         color: Type.Optional(Type.String()),
@@ -178,16 +178,22 @@ export function projectTools() {
         ),
         prioritySortOrder: Type.Optional(Type.Number()),
         sortOrder: Type.Optional(Type.Number()),
-        startDate: Type.Optional(Type.String()),
+        startDate: Type.Optional(Type.String({ description: 'ISO date (YYYY-MM-DD).' })),
         startDateResolution: Type.Optional(DateResolutionTypeSchema),
         statusId: Type.Optional(Type.String()),
-        targetDate: Type.Optional(Type.String()),
+        targetDate: Type.Optional(Type.String({ description: 'ISO date (YYYY-MM-DD).' })),
         targetDateResolution: Type.Optional(DateResolutionTypeSchema),
-        teamIds: Type.Optional(Type.Array(Type.String())),
+        teamIds: Type.Optional(
+          Type.Array(Type.String(), { description: 'Required in create mode (non-empty).' }),
+        ),
         templateId: Type.Optional(Type.String({ description: 'Create mode only.' })),
         useDefaultTemplate: Type.Optional(Type.Boolean({ description: 'Create mode only.' })),
-        canceledAt: Type.Optional(Type.String({ description: 'Update mode only.' })),
-        completedAt: Type.Optional(Type.String({ description: 'Update mode only.' })),
+        canceledAt: Type.Optional(
+          Type.String({ description: 'ISO-8601 datetime (update mode only).' }),
+        ),
+        completedAt: Type.Optional(
+          Type.String({ description: 'ISO-8601 datetime (update mode only).' }),
+        ),
         frequencyResolution: Type.Optional(FrequencyResolutionTypeSchema),
         projectUpdateRemindersPausedUntilAt: nullable(
           Type.String(),
@@ -210,7 +216,9 @@ export function projectTools() {
           }),
         ),
         slackChannelName: Type.Optional(
-          Type.String({ description: 'Slack channel to create/connect (create mode only).' }),
+          Type.String({
+            description: 'Full Slack channel name to create/connect (create mode only).',
+          }),
         ),
         input: inputParam(
           'ProjectCreateInput (projectId omitted) or ProjectUpdateInput (projectId provided)',
@@ -347,7 +355,7 @@ export function projectTools() {
     defineTool({
       name: 'linear_delete_project',
       label: 'Linear Delete Project',
-      description: 'Delete a project by id.',
+      description: 'Move a project to trash by id (restorable via linear_unarchive_project).',
       parameters: Type.Object({
         projectId: Type.String(),
       }),

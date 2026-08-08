@@ -190,14 +190,30 @@ export function issueTools() {
         title: Type.Optional(Type.String({ description: 'Issue title.' })),
         description: Type.Optional(Type.String({ description: 'Issue description in markdown.' })),
         assigneeId: Type.Optional(Type.String({ description: 'IssueCreateInput.assigneeId' })),
-        completedAt: Type.Optional(Type.String({ description: 'IssueCreateInput.completedAt' })),
-        createAsUser: Type.Optional(Type.String({ description: 'IssueCreateInput.createAsUser' })),
-        createdAt: Type.Optional(Type.String({ description: 'IssueCreateInput.createdAt' })),
+        completedAt: Type.Optional(
+          Type.String({
+            description:
+              'IssueCreateInput.completedAt: ISO-8601 datetime in the past, after createdAt (for imports).',
+          }),
+        ),
+        createAsUser: Type.Optional(
+          Type.String({
+            description: 'IssueCreateInput.createAsUser (OAuth actor=app tokens only).',
+          }),
+        ),
+        createdAt: Type.Optional(
+          Type.String({
+            description: 'IssueCreateInput.createdAt: ISO-8601 datetime in the past (for imports).',
+          }),
+        ),
         cycleId: Type.Optional(Type.String({ description: 'IssueCreateInput.cycleId' })),
         delegateId: Type.Optional(Type.String({ description: 'IssueCreateInput.delegateId' })),
         descriptionData: Type.Optional(Type.Record(Type.String(), Type.Any())),
         displayIconUrl: Type.Optional(
-          Type.String({ description: 'IssueCreateInput.displayIconUrl' }),
+          Type.String({
+            description:
+              'IssueCreateInput.displayIconUrl (OAuth actor=app with createAsUser only).',
+          }),
         ),
         dueDate: Type.Optional(
           Type.String({ description: 'IssueCreateInput.dueDate (YYYY-MM-DD)' }),
@@ -235,9 +251,11 @@ export function issueTools() {
           Type.String({ description: 'IssueCreateInput.referenceCommentId' }),
         ),
         slaBreachesAt: Type.Optional(
-          Type.String({ description: 'IssueCreateInput.slaBreachesAt' }),
+          Type.String({ description: 'IssueCreateInput.slaBreachesAt (ISO-8601 datetime).' }),
         ),
-        slaStartedAt: Type.Optional(Type.String({ description: 'IssueCreateInput.slaStartedAt' })),
+        slaStartedAt: Type.Optional(
+          Type.String({ description: 'IssueCreateInput.slaStartedAt (ISO-8601 datetime).' }),
+        ),
         slaType: Type.Optional(SlaDayCountTypeSchema),
         sortOrder: Type.Optional(Type.Number({ description: 'IssueCreateInput.sortOrder' })),
         sourceCommentId: Type.Optional(
@@ -413,13 +431,15 @@ export function issueTools() {
           }),
         ),
         slaBreachesAt: Type.Optional(
-          Type.String({ description: 'IssueUpdateInput.slaBreachesAt' }),
+          Type.String({ description: 'IssueUpdateInput.slaBreachesAt (ISO-8601 datetime).' }),
         ),
-        slaStartedAt: Type.Optional(Type.String({ description: 'IssueUpdateInput.slaStartedAt' })),
+        slaStartedAt: Type.Optional(
+          Type.String({ description: 'IssueUpdateInput.slaStartedAt (ISO-8601 datetime).' }),
+        ),
         slaType: Type.Optional(SlaDayCountTypeSchema),
         snoozedById: Type.Optional(Type.String({ description: 'IssueUpdateInput.snoozedById' })),
         snoozedUntilAt: Type.Optional(
-          Type.String({ description: 'IssueUpdateInput.snoozedUntilAt' }),
+          Type.String({ description: 'IssueUpdateInput.snoozedUntilAt (ISO-8601 datetime).' }),
         ),
         sortOrder: Type.Optional(Type.Number({ description: 'IssueUpdateInput.sortOrder' })),
         subIssueSortOrder: Type.Optional(
@@ -516,12 +536,17 @@ export function issueTools() {
     defineTool({
       name: 'linear_delete_issue',
       label: 'Linear Delete Issue',
-      description: 'Delete an issue by identifier (ENG-123) or id. Admins can permanently delete.',
+      description:
+        'Move an issue to trash by identifier (ENG-123) or id (restorable for ~30 days).',
       parameters: Type.Object({
         issue: Type.String({
           description: 'Issue identifier (ENG-123) or issue id.',
         }),
-        permanentlyDelete: Type.Optional(Type.Boolean()),
+        permanentlyDelete: Type.Optional(
+          Type.Boolean({
+            description: 'Permanently delete, skipping trash and the grace period (admin only).',
+          }),
+        ),
       }),
       renderCall: renderLinearDeleteIssueCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {

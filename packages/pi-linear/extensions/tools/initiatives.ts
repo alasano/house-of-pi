@@ -158,7 +158,7 @@ export function initiativeTools() {
         id: Type.Optional(
           Type.String({ description: 'InitiativeCreateInput.id (create mode only).' }),
         ),
-        name: Type.Optional(Type.String()),
+        name: Type.Optional(Type.String({ description: 'Required in create mode.' })),
         ownerId: Type.Optional(Type.String()),
         sortOrder: Type.Optional(Type.Number()),
         status: Type.Optional(
@@ -166,7 +166,10 @@ export function initiativeTools() {
             description: 'Initiative status.',
           }),
         ),
-        targetDate: nullable(Type.String(), 'Target date. Set to null to clear.'),
+        targetDate: nullable(
+          Type.String(),
+          'Target date (ISO date, YYYY-MM-DD). Set to null to clear.',
+        ),
         targetDateResolution: Type.Optional(DateResolutionTypeSchema),
         frequencyResolution: Type.Optional(FrequencyResolutionTypeSchema),
         trashed: nullable(Type.Boolean(), 'Set true to trash, null to restore (update mode only).'),
@@ -299,7 +302,8 @@ export function initiativeTools() {
     defineTool({
       name: 'linear_delete_initiative',
       label: 'Linear Delete Initiative',
-      description: 'Delete an initiative by id.',
+      description:
+        'Move an initiative to trash by id (restorable via linear_unarchive_initiative).',
       parameters: Type.Object({
         initiativeId: Type.String(),
       }),
