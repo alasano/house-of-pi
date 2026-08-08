@@ -365,6 +365,12 @@ export const CYCLE_SELECTION = `
     startsAt
     endsAt
     completedAt
+    isActive
+    isFuture
+    isPast
+    isNext
+    isPrevious
+    progress
     createdAt
     updatedAt
     team {

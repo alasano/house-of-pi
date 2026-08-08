@@ -38,6 +38,12 @@ type CycleLike = {
   startsAt?: string | null;
   endsAt?: string | null;
   completedAt?: string | null;
+  isActive?: boolean | null;
+  isFuture?: boolean | null;
+  isPast?: boolean | null;
+  isNext?: boolean | null;
+  isPrevious?: boolean | null;
+  progress?: number | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   team?: CycleTeam | null;
@@ -75,21 +81,29 @@ function dateText(value: string | null | undefined): string | undefined {
 }
 
 function statusText(cycle: CycleLike): string {
-  if (cycle.completedAt) return 'completed';
-  if (!cycle.startsAt) return 'planned';
-  const now = Date.now();
-  const startsAt = Date.parse(cycle.startsAt);
-  const endsAt = cycle.endsAt ? Date.parse(cycle.endsAt) : NaN;
-  if (!Number.isFinite(startsAt)) return 'planned';
-  if (now < startsAt) return 'upcoming';
-  if (Number.isFinite(endsAt) && now > endsAt) return 'past';
-  return 'active';
+  const lifecycle = cycle.completedAt
+    ? 'completed'
+    : cycle.isActive === true
+      ? 'active'
+      : cycle.isFuture === true
+        ? 'upcoming'
+        : cycle.isPast === true
+          ? 'past'
+          : 'unknown';
+  const position = cycle.isNext === true ? 'next' : cycle.isPrevious === true ? 'previous' : null;
+
+  return [lifecycle, position].filter(Boolean).join(' · ');
+}
+
+function progressText(cycle: CycleLike): string | undefined {
+  if (typeof cycle.progress !== 'number' || !Number.isFinite(cycle.progress)) return undefined;
+  return `${Math.round(cycle.progress * 100)}%`;
 }
 
 function statusStyle(theme: Theme, value: string): (text: string) => string {
-  if (value === 'completed') return (text) => theme.fg('success', text);
-  if (value === 'active') return (text) => theme.fg('warning', text);
-  if (value === 'upcoming') return (text) => theme.fg('accent', text);
+  if (value.startsWith('completed')) return (text) => theme.fg('success', text);
+  if (value.startsWith('active')) return (text) => theme.fg('warning', text);
+  if (value.startsWith('upcoming')) return (text) => theme.fg('accent', text);
   return mutedStyle(theme);
 }
 
@@ -102,9 +116,14 @@ function descriptionSnippet(cycle: CycleLike): string | undefined {
 function formatCycleListLine(cycle: CycleLike, theme: Theme, width: number): string {
   const range = [dateText(cycle.startsAt), dateText(cycle.endsAt)].filter(Boolean).join(' → ');
   const status = statusText(cycle);
-  const parts = [range || undefined, status, teamText(cycle), descriptionSnippet(cycle)].filter(
-    (part): part is string => !!part,
-  );
+  const progress = progressText(cycle);
+  const parts = [
+    range || undefined,
+    status,
+    progress ? `progress ${progress}` : undefined,
+    teamText(cycle),
+    descriptionSnippet(cycle),
+  ].filter((part): part is string => !!part);
   const suffix = parts.length ? theme.fg('dim', ` · ${parts.join(' · ')}`) : '';
 
   return truncateLine(`  ${theme.fg('toolOutput', cycleName(cycle))}${suffix}`, width);
@@ -114,9 +133,16 @@ const CYCLE_TABLE_COLUMNS: TableColumn<CycleLike>[] = [
   {
     id: 'status',
     label: 'Status',
-    width: 10,
+    width: 20,
     value: (cycle) => statusText(cycle),
     style: (theme, value) => statusStyle(theme, value ?? ''),
+  },
+  {
+    id: 'progress',
+    label: 'Progress',
+    width: 9,
+    value: (cycle) => progressText(cycle) ?? '—',
+    style: (theme) => dimStyle(theme),
   },
   {
     id: 'range',
@@ -144,7 +170,7 @@ function renderCycleTable(cycles: CycleLike[], theme: Theme, width: number): str
       value: cycleName,
       style: (theme) => toolOutputStyle(theme),
     },
-    dropOrder: ['team', 'range', 'status'],
+    dropOrder: ['team', 'range', 'progress', 'status'],
     fallback: formatCycleListLine,
   });
 }
@@ -217,9 +243,13 @@ export function renderLinearCycleMutationResult(
 
   const range = [dateText(cycle.startsAt), dateText(cycle.endsAt)].filter(Boolean).join(' → ');
   const lines = [`${theme.fg('success', '✓')} ${theme.fg('toolOutput', cycleName(cycle))}`];
-  const parts = [range || undefined, statusText(cycle), teamText(cycle)].filter(
-    (part): part is string => !!part,
-  );
+  const progress = progressText(cycle);
+  const parts = [
+    range || undefined,
+    statusText(cycle),
+    progress ? `progress ${progress}` : undefined,
+    teamText(cycle),
+  ].filter((part): part is string => !!part);
   if (parts.length) lines.push(theme.fg('dim', parts.join(' · ')));
 
   return new Text(lines.join('\n'), 0, 0);

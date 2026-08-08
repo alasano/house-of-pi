@@ -29,7 +29,7 @@ function fakeTheme() {
   };
 }
 
-const renderOpts = { isPartial: false };
+const renderOpts = { isPartial: false, expanded: false };
 const renderCtx = { isError: false };
 
 function renderResult(
@@ -47,11 +47,12 @@ function renderedText(
   tool: { renderResult?: unknown },
   result: unknown,
   context: { isError: boolean } = renderCtx,
+  width = 120,
 ): string {
   const component = renderResult(tool, result, context) as
     | { render: (width: number) => string[] }
     | undefined;
-  return component?.render(120).join('\n') ?? '';
+  return component?.render(width).join('\n') ?? '';
 }
 
 function toolByName(tools: Array<{ name: string }>, name: string) {
@@ -149,11 +150,102 @@ describe('cycle tools', () => {
     const result = {
       content: [{ type: 'text' as const, text: '{}' }],
       details: {
-        cycle: { id: 'c1', name: 'W33', startsAt: '2026-08-10T00:00:00.000Z' },
+        cycle: {
+          id: 'c1',
+          name: 'W33',
+          startsAt: '2026-08-10T00:00:00.000Z',
+          isFuture: true,
+          isNext: true,
+          progress: 0.25,
+        },
       },
     };
-    const text = renderResult(tool, result);
-    expect(text).toBeDefined();
+    const text = renderedText(tool, result);
+    expect(text).toContain('upcoming · next');
+    expect(text).toContain('progress 25%');
+  });
+
+  it('requests Linear authoritative cycle status fields', async () => {
+    const tool = toolByName(tools, 'linear_list_cycles');
+    clientMocks.linearGraphQL.mockResolvedValue({
+      cycles: {
+        nodes: [],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: null,
+          endCursor: null,
+        },
+      },
+    });
+
+    await executeTool(tool, {});
+
+    const query = clientMocks.linearGraphQL.mock.calls[0]?.[1] as string;
+    expect(query).toMatch(/\bisActive\b/);
+    expect(query).toMatch(/\bisFuture\b/);
+    expect(query).toMatch(/\bisPast\b/);
+    expect(query).toMatch(/\bisNext\b/);
+    expect(query).toMatch(/\bisPrevious\b/);
+    expect(query).toMatch(/\bprogress\b/);
+  });
+
+  it('renders cycle status from Linear fields instead of inferring it from dates', () => {
+    const tool = toolByName(tools, 'linear_list_cycles');
+    const result = {
+      content: [{ type: 'text' as const, text: '{}' }],
+      details: {
+        cycles: [
+          {
+            id: 'active-cycle',
+            name: 'API says active',
+            startsAt: '2999-01-01T00:00:00.000Z',
+            endsAt: '2999-01-08T00:00:00.000Z',
+            isActive: true,
+            isFuture: false,
+            isPast: false,
+            progress: 0.42,
+          },
+          {
+            id: 'future-cycle',
+            name: 'API says future',
+            startsAt: '2000-01-01T00:00:00.000Z',
+            endsAt: '2000-01-08T00:00:00.000Z',
+            isActive: false,
+            isFuture: true,
+            isPast: false,
+            isNext: true,
+            progress: 0,
+          },
+          {
+            id: 'previous-cycle',
+            name: 'API says previous',
+            startsAt: '2999-02-01T00:00:00.000Z',
+            endsAt: '2999-02-08T00:00:00.000Z',
+            completedAt: '2026-08-01T00:00:00.000Z',
+            isActive: false,
+            isFuture: false,
+            isPast: true,
+            isPrevious: true,
+            progress: 0.78,
+          },
+        ],
+      },
+    };
+
+    const text = renderedText(tool, result);
+    expect(text).toContain('active');
+    expect(text).toContain('upcoming · next');
+    expect(text).toContain('completed · previous');
+    expect(text).toContain('42%');
+    expect(text).toContain('0%');
+    expect(text).toContain('78%');
+    expect(text).not.toContain('past');
+
+    const narrowText = renderedText(tool, result, renderCtx, 60);
+    expect(narrowText).toContain('42%');
+    expect(narrowText).toContain('upcoming · next');
+    expect(narrowText).toContain('completed · previous');
   });
 
   it.each([
