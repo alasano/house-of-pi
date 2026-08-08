@@ -332,3 +332,44 @@ export const USER_SELECTION = `
     updatedAt
     url
   `;
+
+export const CUSTOM_VIEW_SELECTION = `
+    id
+    name
+    description
+    icon
+    color
+    filterData
+    shared
+    slugId
+    createdAt
+    updatedAt
+    modelName
+    team {
+      id
+      key
+      name
+    }
+    owner {
+      id
+      name
+      email
+    }
+  `;
+
+export const CYCLE_SELECTION = `
+    id
+    name
+    number
+    description
+    startsAt
+    endsAt
+    completedAt
+    createdAt
+    updatedAt
+    team {
+      id
+      key
+      name
+    }
+  `;

@@ -1,0 +1,334 @@
+import { defineTool } from '@earendil-works/pi-coding-agent';
+import { Text } from '@earendil-works/pi-tui';
+import { Type } from 'typebox';
+import { withLinearAuth, linearGraphQL, resolveTeamId } from '../client';
+import { PaginationParams, paginationVariables, FilterParam } from '../params';
+import { CUSTOM_VIEW_SELECTION } from '../selections';
+import type { JsonObject, LinearConnection } from '../types';
+import { compactObject, asObject, GenericObjectSchema } from '../util';
+import { expandedJson, renderLinearToolCall, shouldShowJson } from '../renderers/common';
+import {
+  renderLinearCustomViewListCall,
+  renderLinearCustomViewListResult,
+  renderLinearCustomViewMutationCall,
+  renderLinearCustomViewMutationResult,
+} from '../renderers/custom-views';
+
+export function customViewTools() {
+  return [
+    defineTool({
+      name: 'linear_list_views',
+      label: 'Linear List Custom Views',
+      description:
+        'List Linear custom views. Supports full customViews query args (filter, first, orderBy, includeArchived).',
+      parameters: Type.Object({
+        ...PaginationParams,
+        ...FilterParam,
+      }),
+      renderCall: renderLinearCustomViewListCall,
+      async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+        return withLinearAuth(ctx, signal, async (apiKey) => {
+          const variables = compactObject({
+            ...paginationVariables(params, 50),
+            filter: asObject(params.filter),
+          });
+
+          const data = await linearGraphQL<{
+            customViews: LinearConnection<JsonObject>;
+          }>(
+            apiKey,
+            `query ListCustomViews(
+              $after: String
+              $before: String
+              $filter: CustomViewFilter
+              $first: Int
+              $includeArchived: Boolean
+              $last: Int
+              $orderBy: PaginationOrderBy
+            ) {
+              customViews(
+                after: $after
+                before: $before
+                filter: $filter
+                first: $first
+                includeArchived: $includeArchived
+                last: $last
+                orderBy: $orderBy
+              ) {
+                nodes {
+                  ${CUSTOM_VIEW_SELECTION}
+                }
+                pageInfo {
+                  hasNextPage
+                  hasPreviousPage
+                  startCursor
+                  endCursor
+                }
+              }
+            }`,
+            variables,
+            signal,
+          );
+
+          const views = data.customViews.nodes;
+          const pageInfo = data.customViews.pageInfo;
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ views, pageInfo }, null, 2) }],
+            details: { views, pageInfo },
+          };
+        });
+      },
+      renderResult: renderLinearCustomViewListResult,
+    }),
+
+    defineTool({
+      name: 'linear_create_view',
+      label: 'Linear Create Custom View',
+      description:
+        'Create a Linear custom view. Provide name plus optional filterData (Linear IssueFilter JSON), teamId/teamKey, icon, color, shared. Omit teamId for a workspace-level view.',
+      parameters: Type.Object({
+        name: Type.String({ description: 'View name.' }),
+        filterData: Type.Optional(GenericObjectSchema),
+        teamId: Type.Optional(
+          Type.String({ description: 'Team id. Omit for a workspace-level view.' }),
+        ),
+        teamKey: Type.Optional(
+          Type.String({ description: 'Team key (e.g. ENG). Resolved to a team id.' }),
+        ),
+        description: Type.Optional(Type.String({ description: 'View description.' })),
+        icon: Type.Optional(
+          Type.String({ description: 'View icon name (e.g. Calendar, Search).' }),
+        ),
+        color: Type.Optional(Type.String({ description: 'View color hex (e.g. #5E6AD2).' })),
+        shared: Type.Optional(Type.Boolean({ description: 'Whether the view is shared.' })),
+      }),
+      renderCall: (args, theme) =>
+        renderLinearCustomViewMutationCall('linear_create_view', args, theme),
+      async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+        return withLinearAuth(ctx, signal, async (apiKey) => {
+          const teamId = params.teamId
+            ? params.teamId
+            : params.teamKey
+              ? await resolveTeamId(apiKey, { teamKey: params.teamKey }, signal)
+              : undefined;
+
+          const input = compactObject({
+            name: params.name,
+            description: params.description,
+            icon: params.icon,
+            color: params.color,
+            shared: params.shared,
+            teamId,
+            filterData: asObject(params.filterData),
+          });
+
+          const data = await linearGraphQL<{
+            customViewCreate: { customView: JsonObject };
+          }>(
+            apiKey,
+            `mutation CreateCustomView($input: CustomViewCreateInput!) {
+              customViewCreate(input: $input) {
+                customView {
+                  ${CUSTOM_VIEW_SELECTION}
+                }
+              }
+            }`,
+            { input },
+            signal,
+          );
+
+          const view = data.customViewCreate.customView;
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ view }, null, 2) }],
+            details: { view },
+          };
+        });
+      },
+      renderResult: renderLinearCustomViewMutationResult,
+    }),
+
+    defineTool({
+      name: 'linear_update_view',
+      label: 'Linear Update Custom View',
+      description:
+        'Update a Linear custom view by id. Accepts name, filterData, description, icon, color, shared.',
+      parameters: Type.Object({
+        id: Type.String({ description: 'Custom view id.' }),
+        name: Type.Optional(Type.String({ description: 'View name.' })),
+        filterData: Type.Optional(GenericObjectSchema),
+        description: Type.Optional(Type.String({ description: 'View description.' })),
+        icon: Type.Optional(
+          Type.String({ description: 'View icon name (e.g. Calendar, Search).' }),
+        ),
+        color: Type.Optional(Type.String({ description: 'View color hex (e.g. #5E6AD2).' })),
+        shared: Type.Optional(Type.Boolean({ description: 'Whether the view is shared.' })),
+      }),
+      renderCall: (args, theme) =>
+        renderLinearCustomViewMutationCall('linear_update_view', args, theme),
+      async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+        return withLinearAuth(ctx, signal, async (apiKey) => {
+          const input = compactObject({
+            name: params.name,
+            description: params.description,
+            icon: params.icon,
+            color: params.color,
+            shared: params.shared,
+            filterData: asObject(params.filterData),
+          });
+
+          const data = await linearGraphQL<{
+            customViewUpdate: { customView: JsonObject };
+          }>(
+            apiKey,
+            `mutation UpdateCustomView($id: String!, $input: CustomViewUpdateInput!) {
+              customViewUpdate(id: $id, input: $input) {
+                customView {
+                  ${CUSTOM_VIEW_SELECTION}
+                }
+              }
+            }`,
+            { id: params.id, input },
+            signal,
+          );
+
+          const view = data.customViewUpdate.customView;
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ view }, null, 2) }],
+            details: { view },
+          };
+        });
+      },
+      renderResult: renderLinearCustomViewMutationResult,
+    }),
+
+    defineTool({
+      name: 'linear_delete_view',
+      label: 'Linear Delete Custom View',
+      description: 'Delete a Linear custom view by id.',
+      parameters: Type.Object({
+        id: Type.String({ description: 'Custom view id.' }),
+      }),
+      renderCall: (args, theme) =>
+        renderLinearCustomViewMutationCall('linear_delete_view', args, theme),
+      async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+        return withLinearAuth(ctx, signal, async (apiKey) => {
+          const data = await linearGraphQL<{
+            customViewDelete: { success: boolean };
+          }>(
+            apiKey,
+            `mutation DeleteCustomView($id: String!) {
+              customViewDelete(id: $id) {
+                success
+              }
+            }`,
+            { id: params.id },
+            signal,
+          );
+
+          const success = data.customViewDelete.success;
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ success }, null, 2) }],
+            details: { success },
+          };
+        });
+      },
+      renderResult: (result, options, theme, context) => {
+        if (options.isPartial) return new Text(theme.fg('warning', 'Deleting…'), 0, 0);
+        if (shouldShowJson(options, context)) return expandedJson(result, theme);
+        const success = (result.details as { success?: boolean } | undefined)?.success;
+        return new Text(
+          success === false
+            ? theme.fg('error', '✗ Failed to delete view')
+            : `${theme.fg('success', '✓')} View deleted`,
+          0,
+          0,
+        );
+      },
+    }),
+
+    defineTool({
+      name: 'linear_set_view_preferences',
+      label: 'Linear Set Custom View Preferences',
+      description:
+        'Set display preferences (grouping and columns) for a Linear custom view. Accepts a preferences object with keys like issueGrouping (e.g. "assignee", "status", "priority", "cycle", "project"), fieldEstimate, fieldPriority, fieldDueDate, fieldStatus, fieldProject, showEmptyGroups.',
+      parameters: Type.Object({
+        viewId: Type.String({ description: 'Custom view id.' }),
+        preferences: Type.Object({
+          issueGrouping: Type.Optional(
+            Type.String({
+              description:
+                'Group issues by: assignee, status, priority, cycle, project, labels, none.',
+            }),
+          ),
+          issueSubGrouping: Type.Optional(
+            Type.String({
+              description:
+                'Sub-group by: assignee, status, priority, cycle, project, labels, none.',
+            }),
+          ),
+          showEmptyGroups: Type.Optional(Type.Boolean({ description: 'Show empty groups.' })),
+          fieldEstimate: Type.Optional(Type.Boolean({ description: 'Show Estimate column.' })),
+          fieldPriority: Type.Optional(Type.Boolean({ description: 'Show Priority column.' })),
+          fieldDueDate: Type.Optional(Type.Boolean({ description: 'Show Due date column.' })),
+          fieldStatus: Type.Optional(Type.Boolean({ description: 'Show Status column.' })),
+          fieldProject: Type.Optional(Type.Boolean({ description: 'Show Project column.' })),
+          fieldAssignee: Type.Optional(Type.Boolean({ description: 'Show Assignee column.' })),
+          fieldLabels: Type.Optional(Type.Boolean({ description: 'Show Labels column.' })),
+        }),
+      }),
+      renderCall: (args, theme) =>
+        renderLinearToolCall('linear_set_view_preferences', args, theme, [
+          ['viewId', 'view'],
+          ['preferences', 'prefs'],
+        ]),
+      async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+        return withLinearAuth(ctx, signal, async (apiKey) => {
+          const data = await linearGraphQL<{
+            viewPreferencesCreate: {
+              viewPreferences: JsonObject;
+            };
+          }>(
+            apiKey,
+            `mutation SetViewPreferences($input: ViewPreferencesCreateInput!) {
+              viewPreferencesCreate(input: $input) {
+                viewPreferences {
+                  id
+                  type
+                  viewType
+                }
+              }
+            }`,
+            {
+              input: {
+                type: 'user',
+                viewType: 'customView',
+                customViewId: params.viewId,
+                preferences: params.preferences,
+              },
+            },
+            signal,
+          );
+
+          const viewPreferences = data.viewPreferencesCreate.viewPreferences;
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({ viewPreferences, preferences: params.preferences }, null, 2),
+              },
+            ],
+            details: { viewPreferences, preferences: params.preferences },
+          };
+        });
+      },
+      renderResult: (result, options, theme, context) => {
+        if (options.isPartial) return new Text(theme.fg('warning', 'Setting preferences…'), 0, 0);
+        if (shouldShowJson(options, context)) return expandedJson(result, theme);
+        const prefs = (result.details as { preferences?: Record<string, unknown> } | undefined)
+          ?.preferences;
+        const grouping = prefs?.issueGrouping ? ` · group: ${String(prefs.issueGrouping)}` : '';
+        return new Text(`${theme.fg('success', '✓')} View preferences updated${grouping}`, 0, 0);
+      },
+    }),
+  ];
+}

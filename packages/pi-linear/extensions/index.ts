@@ -24,6 +24,8 @@ import { issueTools } from './tools/issues';
 import { issueRelationTools } from './tools/issue-relations';
 import { projectRelationTools } from './tools/project-relations';
 import { workspaceTools } from './tools/workspaces';
+import { customViewTools } from './tools/custom-views';
+import { cycleTools } from './tools/cycles';
 import { registerLinearSettings } from './settings';
 
 export default async function linearExtension(pi: ExtensionAPI) {
@@ -259,6 +261,8 @@ export default async function linearExtension(pi: ExtensionAPI) {
     ...issueRelationTools(),
     ...projectRelationTools(),
     ...workspaceTools(creds),
+    ...customViewTools(),
+    ...cycleTools(),
   ];
 
   for (const tool of allTools) {
