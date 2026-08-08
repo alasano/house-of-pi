@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.0](https://github.com/alasano/house-of-pi/compare/pi-linear-v0.4.1...pi-linear-v0.5.0) (2026-08-08)
+
+
+### Features
+
+* **pi-linear:** add custom view and cycle tools ([#36](https://github.com/alasano/house-of-pi/issues/36)) ([53e9a29](https://github.com/alasano/house-of-pi/commit/53e9a29e06c17015a83b416c9c9c5a547cca5b1f))
+
+
+### Bug Fixes
+
+* **pi-linear:** render errors instead of misleading summaries in all renderers ([#39](https://github.com/alasano/house-of-pi/issues/39)) ([83d68fb](https://github.com/alasano/house-of-pi/commit/83d68fbd63b5feb0b153b31c7fbe79deabef502d))
+* **pi-linear:** replace free-string tool params with schema enums ([#37](https://github.com/alasano/house-of-pi/issues/37)) ([a7f5c48](https://github.com/alasano/house-of-pi/commit/a7f5c480ffc8d44b44b23426f71b653b6d239df7))
+
 ## [0.4.1](https://github.com/alasano/house-of-pi/compare/pi-linear-v0.4.0...pi-linear-v0.4.1) (2026-06-21)
 
 
