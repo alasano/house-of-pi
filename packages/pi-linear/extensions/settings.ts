@@ -30,7 +30,7 @@ function padVisible(text: string, width: number): string {
   return `${text}${' '.repeat(deficit)}`;
 }
 
-const TOOL_CATEGORIES = [
+export const TOOL_CATEGORIES = [
   {
     id: 'issues',
     label: 'Issues',
@@ -78,6 +78,29 @@ const TOOL_CATEGORIES = [
       'linear_create_comment',
       'linear_update_comment',
       'linear_delete_comment',
+    ],
+  },
+  {
+    id: 'cycles',
+    label: 'Cycles',
+    tools: [
+      'linear_list_cycles',
+      'linear_get_cycle',
+      'linear_create_cycle',
+      'linear_update_cycle',
+      'linear_archive_cycle',
+    ],
+  },
+  {
+    id: 'customViews',
+    label: 'Custom Views',
+    tools: [
+      'linear_list_views',
+      'linear_get_view',
+      'linear_create_view',
+      'linear_update_view',
+      'linear_delete_view',
+      'linear_set_view_preferences',
     ],
   },
   {
@@ -274,7 +297,7 @@ function buildItems(settings: ToolSettings): SettingItem[] {
   const items: SettingItem[] = [
     {
       id: 'defaultJsonView',
-      label: 'Default output view',
+      label: 'Default output format',
       description:
         'Controls Linear tool result display. Ctrl+O toggles the other view per tool call.',
       currentValue: defaultOutputViewValue(settings),

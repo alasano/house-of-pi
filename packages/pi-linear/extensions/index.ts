@@ -24,7 +24,31 @@ import { issueTools } from './tools/issues';
 import { issueRelationTools } from './tools/issue-relations';
 import { projectRelationTools } from './tools/project-relations';
 import { workspaceTools } from './tools/workspaces';
+import { customViewTools } from './tools/custom-views';
+import { cycleTools } from './tools/cycles';
 import { registerLinearSettings } from './settings';
+import type { WorkspaceCredentials } from './client';
+
+export function allLinearTools(creds: WorkspaceCredentials) {
+  return [
+    ...teamTools(),
+    ...userTools(),
+    ...issueStatusTools(),
+    ...projectLabelTools(),
+    ...milestoneTools(),
+    ...commentTools(),
+    ...documentTools(),
+    ...initiativeTools(),
+    ...issueLabelTools(),
+    ...projectTools(),
+    ...issueTools(),
+    ...issueRelationTools(),
+    ...projectRelationTools(),
+    ...workspaceTools(creds),
+    ...customViewTools(),
+    ...cycleTools(),
+  ];
+}
 
 export default async function linearExtension(pi: ExtensionAPI) {
   pi.registerCommand('linear-auth', {
@@ -244,24 +268,7 @@ export default async function linearExtension(pi: ExtensionAPI) {
 
   const creds = await readCredentials();
 
-  const allTools = [
-    ...teamTools(),
-    ...userTools(),
-    ...issueStatusTools(),
-    ...projectLabelTools(),
-    ...milestoneTools(),
-    ...commentTools(),
-    ...documentTools(),
-    ...initiativeTools(),
-    ...issueLabelTools(),
-    ...projectTools(),
-    ...issueTools(),
-    ...issueRelationTools(),
-    ...projectRelationTools(),
-    ...workspaceTools(creds),
-  ];
-
-  for (const tool of allTools) {
+  for (const tool of allLinearTools(creds)) {
     pi.registerTool(tool);
   }
 

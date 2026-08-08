@@ -95,6 +95,17 @@ export function jsonHint(): string {
   return `(${keyHint('app.tools.expand', 'show full JSON')})`;
 }
 
+const DETAIL_LABEL_WIDTH = 12;
+
+export function detailLine(
+  theme: Theme,
+  label: string,
+  value: string,
+  style: (text: string) => string = (text) => theme.fg('toolOutput', text),
+): string {
+  return `  ${theme.fg('dim', label.padEnd(DETAIL_LABEL_WIDTH))}${style(value)}`;
+}
+
 export function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : pluralForm}`;
 }
@@ -282,7 +293,7 @@ export function formatToolArgValue(value: unknown): string | undefined {
       : truncate(trimmed, TOOL_ARG_STRING_LIMIT);
   }
   if (typeof value === 'number') return String(value);
-  if (typeof value === 'boolean') return value ? 'true' : undefined;
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (Array.isArray(value)) return value.length ? `[${value.length}]` : undefined;
   if (value && typeof value === 'object') return '{…}';
   return undefined;

@@ -332,3 +332,56 @@ export const USER_SELECTION = `
     updatedAt
     url
   `;
+
+export const CUSTOM_VIEW_SELECTION = `
+    id
+    name
+    description
+    icon
+    color
+    filterData
+    projectFilterData
+    initiativeFilterData
+    feedItemFilterData
+    shared
+    slugId
+    archivedAt
+    createdAt
+    updatedAt
+    modelName
+    team {
+      id
+      key
+      name
+    }
+    owner {
+      id
+      name
+      email
+    }
+  `;
+
+export const CYCLE_SELECTION = `
+    id
+    name
+    number
+    description
+    startsAt
+    endsAt
+    completedAt
+    archivedAt
+    autoArchivedAt
+    isActive
+    isFuture
+    isPast
+    isNext
+    isPrevious
+    progress
+    createdAt
+    updatedAt
+    team {
+      id
+      key
+      name
+    }
+  `;

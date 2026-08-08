@@ -1,7 +1,8 @@
 export type JsonObject = Record<string, unknown>;
 
 export type LinearGraphQLError = {
-  message: string;
+  message?: string;
+  extensions?: unknown;
 };
 
 export type LinearPageInfo = {
