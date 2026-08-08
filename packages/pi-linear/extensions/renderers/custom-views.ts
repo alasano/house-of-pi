@@ -37,6 +37,9 @@ type CustomViewLike = {
   icon?: string | null;
   color?: string | null;
   filterData?: Record<string, unknown> | null;
+  projectFilterData?: Record<string, unknown> | null;
+  initiativeFilterData?: Record<string, unknown> | null;
+  feedItemFilterData?: Record<string, unknown> | null;
   shared?: boolean | null;
   slugId?: string | null;
   modelName?: string | null;
@@ -88,13 +91,42 @@ function archivedMetadata(view: CustomViewLike): string | undefined {
   return archived ? `archived ${archived}` : undefined;
 }
 
+function viewTypeText(view: CustomViewLike): string | undefined {
+  switch (view.modelName) {
+    case 'Project':
+      return 'projects';
+    case 'Initiative':
+      return 'initiatives';
+    case 'FeedItem':
+      return 'updates';
+    default:
+      return undefined;
+  }
+}
+
+function activeFilterData(view: CustomViewLike): Record<string, unknown> | null | undefined {
+  switch (view.modelName) {
+    case 'Project':
+      return view.projectFilterData;
+    case 'Initiative':
+      return view.initiativeFilterData;
+    case 'FeedItem':
+      return view.feedItemFilterData;
+    default:
+      return view.filterData;
+  }
+}
+
 function metadataParts(view: CustomViewLike): string[] {
   const icon = asString(view.icon);
   const shared = view.shared;
-  const filterKeys = view.filterData ? Object.keys(view.filterData).length : 0;
+  const viewType = viewTypeText(view);
+  const filter = activeFilterData(view);
+  const filterKeys = filter ? Object.keys(filter).length : 0;
 
   return [
     scopeText(view),
+    viewType ? `${viewType} view` : undefined,
     icon ? `icon: ${icon}` : undefined,
     typeof shared === 'boolean' ? (shared ? 'shared' : 'private') : undefined,
     filterKeys ? `${filterKeys} filter(s)` : 'no filter',
@@ -141,10 +173,21 @@ const VIEW_ARCHIVED_COLUMN: TableColumn<CustomViewLike> = {
   style: (theme, value) => (value === '—' ? dimStyle(theme) : (text) => theme.fg('warning', text)),
 };
 
+const VIEW_TYPE_COLUMN: TableColumn<CustomViewLike> = {
+  id: 'type',
+  label: 'Type',
+  width: 12,
+  value: (view) => viewTypeText(view) ?? 'issues',
+  style: (theme) => dimStyle(theme),
+};
+
 function renderViewTable(views: CustomViewLike[], theme: Theme, width: number): string[] {
-  const columns = views.some((view) => archivedText(view))
-    ? [...VIEW_TABLE_COLUMNS, VIEW_ARCHIVED_COLUMN]
+  let columns = views.some((view) => viewTypeText(view))
+    ? [VIEW_TYPE_COLUMN, ...VIEW_TABLE_COLUMNS]
     : VIEW_TABLE_COLUMNS;
+  if (views.some((view) => archivedText(view))) {
+    columns = [...columns, VIEW_ARCHIVED_COLUMN];
+  }
 
   return renderResponsiveTable(views, theme, width, {
     columns,

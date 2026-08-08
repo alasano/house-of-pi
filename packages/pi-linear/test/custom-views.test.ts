@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { customViewTools } from '../extensions/tools/custom-views';
 import { linearGraphQL, resolveTeamId } from './client-mock';
-import { agentText, emptyPageInfo, executeTool, renderPlain, toolByName } from './harness';
+import {
+  agentText,
+  emptyPageInfo,
+  executeTool,
+  renderCallPlain,
+  renderPlain,
+  toolByName,
+} from './harness';
 
 vi.mock('../extensions/client', () => import('./client-mock'));
 
@@ -63,6 +70,128 @@ describe('custom view tools', () => {
       details: { views: [{ id: 'current-view', name: 'Current view', archivedAt: null }] },
     };
     expect(renderPlain(tool, currentOnly)).not.toContain('Archived');
+  });
+
+  it('gets a view by ID or slug, including page-attached views', async () => {
+    const tool = toolByName(tools, 'linear_get_view');
+    linearGraphQL.mockResolvedValue({
+      customView: {
+        id: 'v1',
+        name: 'Triage',
+        modelName: 'Issue',
+        filterData: { state: { name: { eq: 'Triage' } } },
+        team: { key: 'PI' },
+      },
+    });
+
+    const result = await executeTool(tool, { id: 'triage-slug' });
+
+    const [, query, variables] = linearGraphQL.mock.calls[0] ?? [];
+    expect(query).toContain('query GetCustomView($id: String!)');
+    expect(query).toContain('customView(id: $id)');
+    expect(variables).toEqual({ id: 'triage-slug' });
+    expect(agentText(result)).toContain('"name": "Triage"');
+
+    expect(renderCallPlain(tool, { id: 'triage-slug' })).toContain(
+      'linear_get_view id=triage-slug',
+    );
+    const text = renderPlain(tool, result);
+    expect(text).toContain('✓ Triage');
+    expect(text).toContain('team: PI');
+    expect(text).toContain('1 filter(s)');
+  });
+
+  it('lists non-issue views with their type instead of "no filter"', () => {
+    const tool = toolByName(tools, 'linear_list_views');
+    const result = {
+      content: [{ type: 'text' as const, text: '{}' }],
+      details: {
+        views: [
+          {
+            id: 'v1',
+            name: 'Triage view',
+            modelName: 'Issue',
+            filterData: { state: { name: { eq: 'Triage' } } },
+          },
+          {
+            id: 'v2',
+            name: 'Roadmap view',
+            modelName: 'Project',
+            filterData: {},
+            projectFilterData: { state: { eq: 'started' } },
+          },
+          {
+            id: 'v3',
+            name: 'Digest view',
+            modelName: 'FeedItem',
+            filterData: {},
+            feedItemFilterData: { type: { eq: 'post' } },
+          },
+        ],
+      },
+    };
+
+    const text = renderPlain(tool, result);
+    const lines = text.split('\n');
+    const header = lines.find((line) => line.includes('Type') && line.includes('Name'));
+    expect(header).toBeDefined();
+    expect(lines.find((line) => line.includes('Triage view'))).toContain('issues');
+    expect(lines.find((line) => line.includes('Roadmap view'))).toContain('projects');
+    expect(lines.find((line) => line.includes('Digest view'))).toContain('updates');
+
+    const issueOnly = {
+      content: [{ type: 'text' as const, text: '{}' }],
+      details: { views: [{ id: 'v1', name: 'Only issues', modelName: 'Issue' }] },
+    };
+    expect(renderPlain(tool, issueOnly)).not.toContain('Type');
+  });
+
+  it('creates a projects view with projectFilterData', async () => {
+    const tool = toolByName(tools, 'linear_create_view');
+    linearGraphQL.mockResolvedValue({
+      customViewCreate: {
+        success: true,
+        customView: {
+          id: 'v2',
+          name: 'Roadmap',
+          modelName: 'Project',
+          projectFilterData: { state: { eq: 'started' } },
+        },
+      },
+    });
+
+    const result = await executeTool(tool, {
+      name: 'Roadmap',
+      projectFilterData: { state: { eq: 'started' } },
+    });
+
+    const [, , variables] = linearGraphQL.mock.calls[0] ?? [];
+    expect(variables).toEqual({
+      input: { name: 'Roadmap', projectFilterData: { state: { eq: 'started' } } },
+    });
+
+    const text = renderPlain(tool, result);
+    expect(text).toContain('✓ Roadmap');
+    expect(text).toContain('projects view');
+    expect(text).toContain('1 filter(s)');
+  });
+
+  it('updates a view filter of any type', async () => {
+    const tool = toolByName(tools, 'linear_update_view');
+    linearGraphQL.mockResolvedValue({
+      customViewUpdate: {
+        success: true,
+        customView: { id: 'v3', name: 'Digest', modelName: 'FeedItem' },
+      },
+    });
+
+    await executeTool(tool, { id: 'v3', feedItemFilterData: { type: { eq: 'post' } } });
+
+    const [, , variables] = linearGraphQL.mock.calls[0] ?? [];
+    expect(variables).toEqual({
+      id: 'v3',
+      input: { feedItemFilterData: { type: { eq: 'post' } } },
+    });
   });
 
   it('creates a view, resolving teamKey and compacting omitted inputs', async () => {

@@ -96,6 +96,7 @@ export const TOOL_CATEGORIES = [
     label: 'Custom Views',
     tools: [
       'linear_list_views',
+      'linear_get_view',
       'linear_create_view',
       'linear_update_view',
       'linear_delete_view',

@@ -14,7 +14,7 @@
 
 <p align="center"><em>Human-readable issue results keep screenshots clean while full JSON remains available with Ctrl+O.</em></p>
 
-Linear integration for [pi](https://pi.dev) with 63+ tools covering issues, projects, documents, initiatives, comments, relations, and more. Includes multi-workspace auth and a per-tool settings overlay.
+Linear integration for [pi](https://pi.dev) with 64+ tools covering issues, projects, documents, initiatives, comments, relations, and more. Includes multi-workspace auth and a per-tool settings overlay.
 
 ## Prerequisites
 
@@ -67,7 +67,7 @@ Credentials and auth preference are stored at `~/.pi/agent/extensions/linear/cre
 
 Run `/linear-settings` to open an overlay where you can choose the default output view and enable or disable tools by category or individually. Linear results default to a human-readable view, with full JSON available via `Ctrl+O`; you can flip the default to full JSON if you prefer. Disabled tools are removed from the LLM's context entirely. Preferences persist across sessions.
 
-## Tools (63)
+## Tools (64)
 
 Enum values, sort keys, and filter value hints in the tool schemas mirror Linear's GraphQL schema introspection.
 
@@ -201,18 +201,19 @@ List and search results include `pageInfo` in the JSON output for cursor paginat
 
 ### Custom Views & Cycles
 
-| Tool                          | Description                                                        |
-| ----------------------------- | ------------------------------------------------------------------ |
-| `linear_list_views`           | List custom views (filter, pagination, order)                      |
-| `linear_create_view`          | Create a custom view with filterData, team, icon, color, shared    |
-| `linear_update_view`          | Update a custom view by id (name, filterData, icon, color, shared) |
-| `linear_delete_view`          | Delete a custom view by id                                         |
-| `linear_set_view_preferences` | Set display preferences (grouping & columns) for a custom view     |
-| `linear_list_cycles`          | List cycles (filter by team, pagination, order)                    |
-| `linear_get_cycle`            | Get cycle details by id or slug                                    |
-| `linear_create_cycle`         | Create a cycle for a team (startsAt / endsAt, optional name)       |
-| `linear_update_cycle`         | Update a cycle by id (name, dates, completion)                     |
-| `linear_archive_cycle`        | Archive a cycle by id and unlink its assigned issues               |
+| Tool                          | Description                                                      |
+| ----------------------------- | ---------------------------------------------------------------- |
+| `linear_list_views`           | List custom views of any type (filter, pagination, order)        |
+| `linear_get_view`             | Get a custom view by id or slug (incl. project/initiative views) |
+| `linear_create_view`          | Create an issues/projects/initiatives/updates view               |
+| `linear_update_view`          | Update a custom view by id (name, filters, icon, color, shared)  |
+| `linear_delete_view`          | Delete a custom view by id                                       |
+| `linear_set_view_preferences` | Set display preferences (grouping & columns) for a custom view   |
+| `linear_list_cycles`          | List cycles (filter by team, pagination, order)                  |
+| `linear_get_cycle`            | Get cycle details by id or slug                                  |
+| `linear_create_cycle`         | Create a cycle for a team (startsAt / endsAt, optional name)     |
+| `linear_update_cycle`         | Update a cycle by id (name, dates, completion)                   |
+| `linear_archive_cycle`        | Archive a cycle by id and unlink its assigned issues             |
 
 Custom view display settings (group by assignee/status/priority, show Estimate/Due date
 columns) are stored per user via `linear_set_view_preferences`; open the view afterwards to

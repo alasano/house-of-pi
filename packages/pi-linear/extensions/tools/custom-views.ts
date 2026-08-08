@@ -40,7 +40,7 @@ export function customViewTools() {
       name: 'linear_list_views',
       label: 'Linear List Custom Views',
       description:
-        'List Linear custom views. Supports full customViews query args (filter, first, orderBy, includeArchived).',
+        "List Linear custom views of any type (issues, projects, initiatives, updates). Supports full customViews query args (filter, first, orderBy, includeArchived). Views attached to a project or initiative page are excluded by Linear's API and cannot be listed; linear_get_view can fetch one when the user provides its ID, slug, or URL.",
       parameters: Type.Object({
         ...PaginationParams,
         ...FilterParam,
@@ -102,13 +102,49 @@ export function customViewTools() {
     }),
 
     defineTool({
+      name: 'linear_get_view',
+      label: 'Linear Get Custom View',
+      description:
+        'Get a Linear custom view by ID or slug. Works for any view type, including views attached to a project or initiative page.',
+      parameters: Type.Object({
+        id: Type.String({ description: 'Custom view ID or slug.' }),
+      }),
+      renderCall: (args, theme) =>
+        renderLinearToolCall('linear_get_view', args, theme, [['id', 'id']]),
+      async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+        return withLinearAuth(ctx, signal, async (apiKey) => {
+          const data = await linearGraphQL<{ customView: JsonObject }>(
+            apiKey,
+            `query GetCustomView($id: String!) {
+              customView(id: $id) {
+                ${CUSTOM_VIEW_SELECTION}
+              }
+            }`,
+            { id: params.id },
+            signal,
+          );
+
+          const view = data.customView;
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ view }, null, 2) }],
+            details: { view },
+          };
+        });
+      },
+      renderResult: renderLinearCustomViewMutationResult,
+    }),
+
+    defineTool({
       name: 'linear_create_view',
       label: 'Linear Create Custom View',
       description:
-        'Create a Linear custom view. Provide name plus optional filterData (Linear IssueFilter JSON), teamId/teamKey, icon, color, shared. Omit teamId for a workspace-level view.',
+        'Create a Linear custom view. Provide name plus exactly one filter: filterData (IssueFilter JSON, issues view), projectFilterData (ProjectFilter JSON, projects view), initiativeFilterData (InitiativeFilter JSON, initiatives view, Linear alpha), or feedItemFilterData (FeedItemFilter JSON, updates view). Optional teamId/teamKey, icon, color, shared. Omit teamId for a workspace-level view.',
       parameters: Type.Object({
         name: Type.String({ description: 'View name.' }),
         filterData: Type.Optional(GenericObjectSchema),
+        projectFilterData: Type.Optional(GenericObjectSchema),
+        initiativeFilterData: Type.Optional(GenericObjectSchema),
+        feedItemFilterData: Type.Optional(GenericObjectSchema),
         teamId: Type.Optional(
           Type.String({ description: 'Team id. Omit for a workspace-level view.' }),
         ),
@@ -140,6 +176,9 @@ export function customViewTools() {
             shared: params.shared,
             teamId,
             filterData: asObject(params.filterData),
+            projectFilterData: asObject(params.projectFilterData),
+            initiativeFilterData: asObject(params.initiativeFilterData),
+            feedItemFilterData: asObject(params.feedItemFilterData),
           });
 
           const data = await linearGraphQL<{
@@ -172,11 +211,14 @@ export function customViewTools() {
       name: 'linear_update_view',
       label: 'Linear Update Custom View',
       description:
-        'Update a Linear custom view by id. Accepts name, filterData, description, icon, color, shared.',
+        'Update a Linear custom view by id. Accepts name, description, icon, color, shared, and the filter matching the view type: filterData (issues), projectFilterData (projects), initiativeFilterData (initiatives, Linear alpha), feedItemFilterData (updates).',
       parameters: Type.Object({
         id: Type.String({ description: 'Custom view id.' }),
         name: Type.Optional(Type.String({ description: 'View name.' })),
         filterData: Type.Optional(GenericObjectSchema),
+        projectFilterData: Type.Optional(GenericObjectSchema),
+        initiativeFilterData: Type.Optional(GenericObjectSchema),
+        feedItemFilterData: Type.Optional(GenericObjectSchema),
         description: Type.Optional(Type.String({ description: 'View description.' })),
         icon: Type.Optional(
           Type.String({ description: 'View icon name (e.g. Calendar, Search).' }),
@@ -195,6 +237,9 @@ export function customViewTools() {
             color: params.color,
             shared: params.shared,
             filterData: asObject(params.filterData),
+            projectFilterData: asObject(params.projectFilterData),
+            initiativeFilterData: asObject(params.initiativeFilterData),
+            feedItemFilterData: asObject(params.feedItemFilterData),
           });
 
           const data = await linearGraphQL<{

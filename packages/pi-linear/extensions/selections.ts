@@ -340,6 +340,9 @@ export const CUSTOM_VIEW_SELECTION = `
     icon
     color
     filterData
+    projectFilterData
+    initiativeFilterData
+    feedItemFilterData
     shared
     slugId
     archivedAt
