@@ -2,7 +2,7 @@ import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Text } from '@earendil-works/pi-tui';
 import { Type } from 'typebox';
 import { withLinearAuth, linearGraphQL, resolveTeamId } from '../client';
-import { PaginationParams, paginationVariables, FilterParam } from '../params';
+import { PaginationParams, paginationVariables, filterParam } from '../params';
 import { CUSTOM_VIEW_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asString, GenericObjectSchema } from '../util';
@@ -50,7 +50,7 @@ export function customViewTools() {
         "List Linear custom views of any type (issues, projects, initiatives, updates). Supports full customViews query args (filter, first, orderBy, includeArchived). Views attached to a project or initiative page are excluded by Linear's API and cannot be listed; linear_get_view can fetch one when the user provides its ID, slug, or URL.",
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
+        filter: filterParam('CustomViewFilter'),
       }),
       renderCall: renderLinearCustomViewListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {

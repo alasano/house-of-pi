@@ -1,7 +1,7 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { withLinearAuth, linearGraphQL, resolveTeamId } from '../client';
-import { PaginationParams, paginationVariables, FilterParam } from '../params';
+import { PaginationParams, paginationVariables, filterParam } from '../params';
 import { CYCLE_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject } from '../util';
@@ -57,7 +57,7 @@ export function cycleTools() {
         'List Linear cycles. Supports full cycles query args (filter, first, orderBy, includeArchived).',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
+        filter: filterParam('CycleFilter'),
         teamId: Type.Optional(Type.String({ description: 'Team id to scope cycles.' })),
         teamKey: Type.Optional(
           Type.String({ description: 'Team key (e.g. ENG). Resolved to a team id.' }),
