@@ -1,5 +1,19 @@
-import { Type } from 'typebox';
+import { Type, type TUnsafe } from 'typebox';
 import { compactObject, GenericObjectSchema } from './util';
+
+export function stringEnum<const T extends readonly string[]>(
+  values: T,
+  options?: { description?: string },
+): TUnsafe<T[number]> {
+  return Type.Unsafe<T[number]>({
+    type: 'string',
+    enum: [...values],
+    ...(options?.description && { description: options.description }),
+  });
+}
+
+const PAGINATION_ORDER_BY_VALUES = ['createdAt', 'updatedAt'] as const;
+type PaginationOrderBy = (typeof PAGINATION_ORDER_BY_VALUES)[number];
 
 export const PaginationParams = {
   after: Type.Optional(Type.String({ description: 'Pagination cursor.' })),
@@ -20,8 +34,8 @@ export const PaginationParams = {
   ),
   includeArchived: Type.Optional(Type.Boolean({ description: 'Include archived resources.' })),
   orderBy: Type.Optional(
-    Type.String({
-      description: 'PaginationOrderBy enum value (for example: updatedAt, createdAt).',
+    stringEnum(PAGINATION_ORDER_BY_VALUES, {
+      description: 'Sort order: createdAt (default) or updatedAt.',
     }),
   ),
 };
@@ -32,7 +46,7 @@ type PaginationVariableParams = {
   first?: number;
   includeArchived?: boolean;
   last?: number;
-  orderBy?: string;
+  orderBy?: PaginationOrderBy;
 };
 
 export function paginationVariables(
