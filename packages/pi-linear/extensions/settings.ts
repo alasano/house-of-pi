@@ -81,6 +81,22 @@ const TOOL_CATEGORIES = [
     ],
   },
   {
+    id: 'cycles',
+    label: 'Cycles',
+    tools: ['linear_list_cycles', 'linear_create_cycle', 'linear_update_cycle'],
+  },
+  {
+    id: 'customViews',
+    label: 'Custom Views',
+    tools: [
+      'linear_list_views',
+      'linear_create_view',
+      'linear_update_view',
+      'linear_delete_view',
+      'linear_set_view_preferences',
+    ],
+  },
+  {
     id: 'projects',
     label: 'Projects',
     tools: [
@@ -274,7 +290,7 @@ function buildItems(settings: ToolSettings): SettingItem[] {
   const items: SettingItem[] = [
     {
       id: 'defaultJsonView',
-      label: 'Default output view',
+      label: 'Default output format',
       description:
         'Controls Linear tool result display. Ctrl+O toggles the other view per tool call.',
       currentValue: defaultOutputViewValue(settings),
