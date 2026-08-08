@@ -220,7 +220,7 @@ export function cycleTools() {
           };
         });
       },
-      renderResult: renderLinearCycleMutationResult,
+      renderResult: renderLinearCycleMutationResult('Created'),
     }),
 
     defineTool({
@@ -271,7 +271,7 @@ export function cycleTools() {
           };
         });
       },
-      renderResult: renderLinearCycleMutationResult,
+      renderResult: renderLinearCycleMutationResult('Updated'),
     }),
 
     defineTool({

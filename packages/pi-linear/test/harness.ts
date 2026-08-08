@@ -22,7 +22,7 @@ type Renderable = { render: (width: number) => string[] };
 export function renderPlain(
   tool: { renderResult?: unknown },
   result: unknown,
-  context: { isError: boolean } = okContext,
+  context: { isError: boolean; args?: Record<string, unknown> } = okContext,
   width = 120,
 ): string {
   const renderer = tool.renderResult as

@@ -8,8 +8,10 @@ import {
   accentStyle,
   asString,
   cleanOneLine,
+  detailLine,
   dimStyle,
   expandedJson,
+  jsonHint,
   shouldShowJson,
   LinearListResultComponent,
   mutedStyle,
@@ -117,19 +119,24 @@ function activeFilterData(view: CustomViewLike): Record<string, unknown> | null 
   }
 }
 
+function filterKeysText(view: CustomViewLike): string | undefined {
+  const filter = activeFilterData(view);
+  const keys = filter ? Object.keys(filter) : [];
+  return keys.length ? truncate(keys.join(', '), 60) : undefined;
+}
+
 function metadataParts(view: CustomViewLike): string[] {
   const icon = asString(view.icon);
   const shared = view.shared;
   const viewType = viewTypeText(view);
-  const filter = activeFilterData(view);
-  const filterKeys = filter ? Object.keys(filter).length : 0;
+  const filterKeys = filterKeysText(view);
 
   return [
     scopeText(view),
     viewType ? `${viewType} view` : undefined,
     icon ? `icon: ${icon}` : undefined,
     typeof shared === 'boolean' ? (shared ? 'shared' : 'private') : undefined,
-    filterKeys ? `${filterKeys} filter(s)` : 'no filter',
+    filterKeys ? `filter: ${filterKeys}` : 'no filter',
     archivedMetadata(view),
   ].filter((part): part is string => !!part);
 }
@@ -204,7 +211,11 @@ function renderViewTable(views: CustomViewLike[], theme: Theme, width: number): 
 
 export function renderLinearCustomViewListCall(args: ToolArgs | undefined, theme: Theme): Text {
   return renderLinearToolCall('linear_list_views', args, theme, [
+    ['filter', 'filter'],
     ['first', 'first'],
+    ['after', 'after'],
+    ['last', 'last'],
+    ['before', 'before'],
     ['orderBy', 'order'],
     ['includeArchived', 'archived'],
   ]);
@@ -218,6 +229,10 @@ export function renderLinearCustomViewListResult(
 ): Text | LinearListResultComponent<CustomViewLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading custom views…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) {
+    const message = cleanOneLine(textContent(result)) || 'Linear request failed.';
+    return new Text(theme.fg('error', `✗ ${message}`), 0, 0);
+  }
 
   const views = Array.isArray(viewDetails(result).views)
     ? (viewDetails(result).views as CustomViewLike[])
@@ -238,33 +253,110 @@ export function renderLinearCustomViewMutationCall(
   theme: Theme,
 ): Text {
   return renderLinearToolCall(toolName, args, theme, [
+    ['id', 'id'],
     ['name', 'name'],
-    ['teamId', 'team'],
+    ['teamId', 'teamId'],
+    ['teamKey', 'team'],
     ['icon', 'icon'],
     ['color', 'color'],
     ['shared', 'shared'],
+    ['filterData', 'filter'],
+    ['projectFilterData', 'projectFilter'],
+    ['initiativeFilterData', 'initiativeFilter'],
+    ['feedItemFilterData', 'feedFilter'],
   ]);
 }
 
-export function renderLinearCustomViewMutationResult(
+export function renderLinearCustomViewMutationResult(actionLabel: string) {
+  return (
+    result: AgentToolResult<any>,
+    options: ToolRenderResultOptions,
+    theme: Theme,
+    context: LinearToolRenderContext,
+  ): Text => {
+    if (options.isPartial) return new Text(theme.fg('warning', 'Working…'), 0, 0);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) {
+      const message = cleanOneLine(textContent(result)) || 'Custom view operation failed.';
+      return new Text(theme.fg('error', `✗ ${message}`), 0, 0);
+    }
+
+    const view = viewDetails(result).view;
+    if (!view) return new Text(theme.fg('muted', 'Custom view operation completed.'), 0, 0);
+
+    const lines = [
+      `${theme.fg('success', `✓ ${actionLabel}`)} ${theme.fg('toolOutput', viewName(view))}`,
+    ];
+    const parts = metadataParts(view);
+    if (parts.length) lines.push(theme.fg('dim', parts.join(' · ')));
+    const description = descriptionSnippet(view);
+    if (description) lines.push(theme.fg('muted', description));
+    lines.push('', jsonHint());
+
+    return new Text(lines.join('\n'), 0, 0);
+  };
+}
+
+export function renderLinearGetViewResult(
   result: AgentToolResult<any>,
   options: ToolRenderResultOptions,
   theme: Theme,
   context: LinearToolRenderContext,
 ): Text {
-  if (options.isPartial) return new Text(theme.fg('warning', 'Working…'), 0, 0);
+  if (options.isPartial) return new Text(theme.fg('warning', 'Loading view…'), 0, 0);
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
   if (context.isError) {
-    const message = cleanOneLine(textContent(result)) || 'Custom view operation failed.';
+    const message = cleanOneLine(textContent(result)) || 'Linear failed to get the view.';
     return new Text(theme.fg('error', `✗ ${message}`), 0, 0);
   }
-  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const view = viewDetails(result).view;
-  if (!view) return new Text(theme.fg('muted', 'Custom view operation completed.'), 0, 0);
+  if (!view) {
+    return new Text(theme.fg('error', '✗ View not found.'), 0, 0);
+  }
 
-  const lines = [`${theme.fg('success', '✓')} ${theme.fg('toolOutput', viewName(view))}`];
-  const parts = metadataParts(view);
-  if (parts.length) lines.push(theme.fg('dim', parts.join(' · ')));
+  const lines = [
+    '',
+    `${theme.fg('success', '✓ View')} ${theme.fg('toolOutput', viewName(view))}`,
+    '',
+    detailLine(theme, 'Type', `${viewTypeText(view) ?? 'issues'} view`, (text) =>
+      theme.fg('accent', text),
+    ),
+    detailLine(theme, 'Scope', scopeText(view), (text) => theme.fg('accent', text)),
+  ];
 
+  if (typeof view.shared === 'boolean') {
+    lines.push(
+      detailLine(theme, 'Shared', view.shared ? 'shared' : 'private', (text) =>
+        theme.fg('dim', text),
+      ),
+    );
+  }
+
+  const icon = asString(view.icon);
+  if (icon) {
+    lines.push(detailLine(theme, 'Icon', icon, (text) => theme.fg('dim', text)));
+  }
+
+  lines.push(
+    detailLine(theme, 'Filter', filterKeysText(view) ?? 'none', (text) => theme.fg('dim', text)),
+  );
+
+  const slug = asString(view.slugId);
+  if (slug) {
+    lines.push(detailLine(theme, 'Slug', slug, (text) => theme.fg('dim', text)));
+  }
+
+  const archived = archivedText(view);
+  if (archived) {
+    lines.push(detailLine(theme, 'Archived', archived, (text) => theme.fg('warning', text)));
+  }
+
+  const description = descriptionSnippet(view);
+  if (description) {
+    lines.push(detailLine(theme, 'Description', description, (text) => theme.fg('muted', text)));
+  }
+
+  lines.push('', jsonHint());
   return new Text(lines.join('\n'), 0, 0);
 }

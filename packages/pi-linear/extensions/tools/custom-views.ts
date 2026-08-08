@@ -5,13 +5,20 @@ import { withLinearAuth, linearGraphQL, resolveTeamId } from '../client';
 import { PaginationParams, paginationVariables, FilterParam } from '../params';
 import { CUSTOM_VIEW_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
-import { compactObject, asObject, GenericObjectSchema } from '../util';
-import { expandedJson, renderLinearToolCall, shouldShowJson } from '../renderers/common';
+import { compactObject, asObject, asString, GenericObjectSchema } from '../util';
+import {
+  cleanOneLine,
+  expandedJson,
+  renderLinearToolCall,
+  shouldShowJson,
+  textContent,
+} from '../renderers/common';
 import {
   renderLinearCustomViewListCall,
   renderLinearCustomViewListResult,
   renderLinearCustomViewMutationCall,
   renderLinearCustomViewMutationResult,
+  renderLinearGetViewResult,
 } from '../renderers/custom-views';
 
 type CustomViewMutationPayload = {
@@ -131,7 +138,7 @@ export function customViewTools() {
           };
         });
       },
-      renderResult: renderLinearCustomViewMutationResult,
+      renderResult: renderLinearGetViewResult,
     }),
 
     defineTool({
@@ -204,7 +211,7 @@ export function customViewTools() {
           };
         });
       },
-      renderResult: renderLinearCustomViewMutationResult,
+      renderResult: renderLinearCustomViewMutationResult('Created'),
     }),
 
     defineTool({
@@ -265,7 +272,7 @@ export function customViewTools() {
           };
         });
       },
-      renderResult: renderLinearCustomViewMutationResult,
+      renderResult: renderLinearCustomViewMutationResult('Updated'),
     }),
 
     defineTool({
@@ -302,11 +309,17 @@ export function customViewTools() {
       renderResult: (result, options, theme, context) => {
         if (options.isPartial) return new Text(theme.fg('warning', 'Deleting…'), 0, 0);
         if (shouldShowJson(options, context)) return expandedJson(result, theme);
+        const id = asString((context.args as { id?: unknown } | undefined)?.id);
+        const target = id ? `view ${id}` : 'view';
+        if (context.isError) {
+          const message = cleanOneLine(textContent(result)) || `Failed to delete ${target}.`;
+          return new Text(theme.fg('error', `✗ ${message}`), 0, 0);
+        }
         const success = (result.details as { success?: boolean } | undefined)?.success;
         return new Text(
-          success === false
-            ? theme.fg('error', '✗ Failed to delete view')
-            : `${theme.fg('success', '✓')} View deleted`,
+          success === true
+            ? `${theme.fg('success', '✓ Deleted')} ${theme.fg('toolOutput', target)}`
+            : theme.fg('error', `✗ Failed to delete ${target}`),
           0,
           0,
         );
@@ -391,10 +404,20 @@ export function customViewTools() {
       renderResult: (result, options, theme, context) => {
         if (options.isPartial) return new Text(theme.fg('warning', 'Setting preferences…'), 0, 0);
         if (shouldShowJson(options, context)) return expandedJson(result, theme);
+        if (context.isError) {
+          const message = cleanOneLine(textContent(result)) || 'Failed to update view preferences.';
+          return new Text(theme.fg('error', `✗ ${message}`), 0, 0);
+        }
         const prefs = (result.details as { preferences?: Record<string, unknown> } | undefined)
           ?.preferences;
-        const grouping = prefs?.issueGrouping ? ` · group: ${String(prefs.issueGrouping)}` : '';
-        return new Text(`${theme.fg('success', '✓')} View preferences updated${grouping}`, 0, 0);
+        const viewId = asString((context.args as { viewId?: unknown } | undefined)?.viewId);
+        const parts = [
+          viewId ? `view ${viewId}` : undefined,
+          ...Object.entries(prefs ?? {}).map(([key, value]) => `${key}: ${String(value)}`),
+        ].filter((part): part is string => !!part);
+        const lines = [`${theme.fg('success', '✓')} View preferences updated`];
+        if (parts.length) lines.push(theme.fg('dim', parts.join(' · ')));
+        return new Text(lines.join('\n'), 0, 0);
       },
     }),
   ];

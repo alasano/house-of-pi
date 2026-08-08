@@ -8,6 +8,7 @@ import {
   accentStyle,
   asString,
   cleanOneLine,
+  detailLine,
   dimStyle,
   expandedJson,
   jsonHint,
@@ -61,7 +62,6 @@ type CycleResultDetails = {
 const CYCLE_LIST_PREVIEW_LIMIT = 20;
 const NAME_LIMIT = 50;
 const DESCRIPTION_LIMIT = 100;
-const DETAIL_LABEL_WIDTH = 12;
 
 function cycleDetails(result: AgentToolResult<any>): CycleResultDetails {
   return (result.details ?? {}) as CycleResultDetails;
@@ -118,15 +118,6 @@ function archivedMetadata(cycle: CycleLike): string | undefined {
 
 function rangeText(cycle: CycleLike): string {
   return [dateText(cycle.startsAt), dateText(cycle.endsAt)].filter(Boolean).join(' → ') || '—';
-}
-
-function detailLine(
-  theme: Theme,
-  label: string,
-  value: string,
-  style: (text: string) => string = (text) => theme.fg('toolOutput', text),
-): string {
-  return `  ${theme.fg('dim', label.padEnd(DETAIL_LABEL_WIDTH))}${style(value)}`;
 }
 
 function statusStyle(theme: Theme, value: string): (text: string) => string {
@@ -219,7 +210,13 @@ function renderCycleTable(cycles: CycleLike[], theme: Theme, width: number): str
 
 export function renderLinearCycleListCall(args: ToolArgs | undefined, theme: Theme): Text {
   return renderLinearToolCall('linear_list_cycles', args, theme, [
+    ['teamId', 'teamId'],
+    ['teamKey', 'team'],
+    ['filter', 'filter'],
     ['first', 'first'],
+    ['after', 'after'],
+    ['last', 'last'],
+    ['before', 'before'],
     ['orderBy', 'order'],
     ['includeArchived', 'archived'],
   ]);
@@ -241,6 +238,10 @@ export function renderLinearCycleListResult(
 ): Text | LinearListResultComponent<CycleLike> {
   if (options.isPartial) return new Text(theme.fg('warning', 'Loading cycles…'), 0, 0);
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
+  if (context.isError) {
+    const message = cleanOneLine(textContent(result)) || 'Linear request failed.';
+    return new Text(theme.fg('error', `✗ ${message}`), 0, 0);
+  }
 
   const cycles = Array.isArray(cycleDetails(result).cycles)
     ? (cycleDetails(result).cycles as CycleLike[])
@@ -261,10 +262,13 @@ export function renderLinearCycleMutationCall(
   theme: Theme,
 ): Text {
   return renderLinearToolCall(toolName, args, theme, [
+    ['id', 'id'],
     ['name', 'name'],
-    ['teamId', 'team'],
+    ['teamId', 'teamId'],
+    ['teamKey', 'team'],
     ['startsAt', 'starts'],
     ['endsAt', 'ends'],
+    ['completedAt', 'completed'],
   ]);
 }
 
@@ -283,11 +287,11 @@ function renderCycleDetail(
       0,
     );
   }
+  if (shouldShowJson(options, context)) return expandedJson(result, theme);
   if (context.isError) {
     const message = cleanOneLine(textContent(result)) || `Linear failed to ${mode} the cycle.`;
     return new Text(theme.fg('error', `✗ ${message}`), 0, 0);
   }
-  if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const details = cycleDetails(result);
   if (mode === 'archive' && details.success !== true) {
@@ -350,40 +354,45 @@ export function renderLinearArchiveCycleResult(
   return renderCycleDetail(result, options, theme, context, 'archive');
 }
 
-export function renderLinearCycleMutationResult(
-  result: AgentToolResult<any>,
-  options: ToolRenderResultOptions,
-  theme: Theme,
-  context: LinearToolRenderContext,
-): Text {
-  if (options.isPartial) return new Text(theme.fg('warning', 'Working…'), 0, 0);
-  if (context.isError) {
-    const message = cleanOneLine(textContent(result)) || 'Cycle operation failed.';
-    return new Text(theme.fg('error', `✗ ${message}`), 0, 0);
-  }
-  if (shouldShowJson(options, context)) return expandedJson(result, theme);
+export function renderLinearCycleMutationResult(actionLabel: string) {
+  return (
+    result: AgentToolResult<any>,
+    options: ToolRenderResultOptions,
+    theme: Theme,
+    context: LinearToolRenderContext,
+  ): Text => {
+    if (options.isPartial) return new Text(theme.fg('warning', 'Working…'), 0, 0);
+    if (shouldShowJson(options, context)) return expandedJson(result, theme);
+    if (context.isError) {
+      const message = cleanOneLine(textContent(result)) || 'Cycle operation failed.';
+      return new Text(theme.fg('error', `✗ ${message}`), 0, 0);
+    }
 
-  const details = cycleDetails(result);
-  if (details.success === false) {
-    return new Text(theme.fg('error', '✗ Cycle operation failed.'), 0, 0);
-  }
+    const details = cycleDetails(result);
+    if (details.success === false) {
+      return new Text(theme.fg('error', '✗ Cycle operation failed.'), 0, 0);
+    }
 
-  const cycle = details.cycle;
-  if (!cycle) {
-    return new Text(theme.fg('error', '✗ Cycle operation returned no cycle.'), 0, 0);
-  }
+    const cycle = details.cycle;
+    if (!cycle) {
+      return new Text(theme.fg('error', '✗ Cycle operation returned no cycle.'), 0, 0);
+    }
 
-  const range = [dateText(cycle.startsAt), dateText(cycle.endsAt)].filter(Boolean).join(' → ');
-  const lines = [`${theme.fg('success', '✓')} ${theme.fg('toolOutput', cycleName(cycle))}`];
-  const progress = progressText(cycle);
-  const parts = [
-    range || undefined,
-    statusText(cycle),
-    progress ? `progress ${progress}` : undefined,
-    teamText(cycle),
-    archivedMetadata(cycle),
-  ].filter((part): part is string => !!part);
-  if (parts.length) lines.push(theme.fg('dim', parts.join(' · ')));
+    const range = [dateText(cycle.startsAt), dateText(cycle.endsAt)].filter(Boolean).join(' → ');
+    const lines = [
+      `${theme.fg('success', `✓ ${actionLabel}`)} ${theme.fg('toolOutput', cycleName(cycle))}`,
+    ];
+    const progress = progressText(cycle);
+    const parts = [
+      range || undefined,
+      statusText(cycle),
+      progress ? `progress ${progress}` : undefined,
+      teamText(cycle),
+      archivedMetadata(cycle),
+    ].filter((part): part is string => !!part);
+    if (parts.length) lines.push(theme.fg('dim', parts.join(' · ')));
+    lines.push('', jsonHint());
 
-  return new Text(lines.join('\n'), 0, 0);
+    return new Text(lines.join('\n'), 0, 0);
+  };
 }

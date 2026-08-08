@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { LinearGraphQLError, LinearIssue } from './types';
-import { asString } from './util';
+import { asString, asObject } from './util';
 import { ISSUE_SELECTION } from './selections';
 
 const LINEAR_GRAPHQL_ENDPOINT = 'https://api.linear.app/graphql';
@@ -164,6 +164,44 @@ export async function resolveApiKey(
   return { source: 'none' };
 }
 
+function validationMessages(extensions: Record<string, unknown>): string | undefined {
+  const collected: string[] = [];
+  const push = (value: unknown) => {
+    const text = asString(value);
+    if (text) collected.push(text);
+  };
+  const sources = [extensions, asObject(extensions.exception) ?? {}];
+  for (const source of sources) {
+    for (const key of ['fieldErrors', 'validationErrors']) {
+      const entries = source[key];
+      if (!Array.isArray(entries)) continue;
+      for (const entry of entries) {
+        const record = asObject(entry);
+        if (!record) {
+          push(entry);
+          continue;
+        }
+        const constraints = asObject(record.constraints);
+        if (constraints) Object.values(constraints).forEach(push);
+        else push(record.message);
+      }
+    }
+  }
+  return collected.length ? [...new Set(collected)].join('; ') : undefined;
+}
+
+function linearErrorText(error: LinearGraphQLError): string {
+  const extensions = asObject(error.extensions) ?? {};
+  return (
+    asString(extensions.userPresentableMessage) ??
+    validationMessages(extensions) ??
+    asString(error.message) ??
+    asString(extensions.type) ??
+    asString(extensions.code) ??
+    'Unknown Linear GraphQL error'
+  );
+}
+
 export async function linearGraphQL<TData>(
   apiKey: string,
   query: string,
@@ -180,22 +218,24 @@ export async function linearGraphQL<TData>(
     signal,
   });
 
-  const body = (await response.json()) as {
-    data?: TData;
-    errors?: LinearGraphQLError[];
-  };
-
-  if (!response.ok) {
-    const message =
-      body.errors?.map((error) => error.message).join('; ') ||
-      `${response.status} ${response.statusText}`;
-    throw new Error(`Linear API request failed: ${message}`);
+  let body: { data?: TData; errors?: unknown } = {};
+  try {
+    body = (await response.json()) as { data?: TData; errors?: unknown };
+  } catch {
+    // Non-JSON error responses fall through to the HTTP status message.
   }
 
-  if (body.errors?.length) {
+  const errors = Array.isArray(body.errors) ? (body.errors as LinearGraphQLError[]) : [];
+  const detail = [...new Set(errors.map(linearErrorText))].join('; ');
+
+  if (!response.ok) {
     throw new Error(
-      `Linear GraphQL error: ${body.errors.map((error) => error.message).join('; ')}`,
+      `Linear API request failed: ${detail || `${response.status} ${response.statusText}`}`,
     );
+  }
+
+  if (errors.length) {
+    throw new Error(`Linear GraphQL error: ${detail}`);
   }
 
   if (!body.data) {

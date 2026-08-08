@@ -72,7 +72,7 @@ describe('custom view tools', () => {
     expect(renderPlain(tool, currentOnly)).not.toContain('Archived');
   });
 
-  it('gets a view by ID or slug, including page-attached views', async () => {
+  it('gets a view by ID or slug and renders a labeled detail card', async () => {
     const tool = toolByName(tools, 'linear_get_view');
     linearGraphQL.mockResolvedValue({
       customView: {
@@ -81,6 +81,10 @@ describe('custom view tools', () => {
         modelName: 'Issue',
         filterData: { state: { name: { eq: 'Triage' } } },
         team: { key: 'PI' },
+        shared: false,
+        icon: 'Search',
+        slugId: 'abc123def456',
+        description: 'Triage queue for PI',
       },
     });
 
@@ -96,9 +100,31 @@ describe('custom view tools', () => {
       'linear_get_view id=triage-slug',
     );
     const text = renderPlain(tool, result);
-    expect(text).toContain('✓ Triage');
-    expect(text).toContain('team: PI');
-    expect(text).toContain('1 filter(s)');
+    expect(text).toContain('✓ View Triage');
+    expect(text).toMatch(/Type\s+issues view/);
+    expect(text).toMatch(/Scope\s+team: PI/);
+    expect(text).toMatch(/Shared\s+private/);
+    expect(text).toMatch(/Icon\s+Search/);
+    expect(text).toMatch(/Filter\s+state/);
+    expect(text).toMatch(/Slug\s+abc123def456/);
+    expect(text).toMatch(/Description\s+Triage queue for PI/);
+    expect(text).toContain('show full JSON');
+
+    const projectView = {
+      content: [{ type: 'text' as const, text: '{}' }],
+      details: {
+        view: {
+          id: 'v2',
+          name: 'Roadmap',
+          modelName: 'Project',
+          projectFilterData: { state: { eq: 'started' } },
+        },
+      },
+    };
+    const projectText = renderPlain(tool, projectView);
+    expect(projectText).toMatch(/Type\s+projects view/);
+    expect(projectText).toMatch(/Filter\s+state/);
+    expect(projectText).toMatch(/Scope\s+workspace/);
   });
 
   it('lists non-issue views with their type instead of "no filter"', () => {
@@ -171,9 +197,9 @@ describe('custom view tools', () => {
     });
 
     const text = renderPlain(tool, result);
-    expect(text).toContain('✓ Roadmap');
+    expect(text).toContain('✓ Created Roadmap');
     expect(text).toContain('projects view');
-    expect(text).toContain('1 filter(s)');
+    expect(text).toContain('filter: state');
   });
 
   it('updates a view filter of any type', async () => {
@@ -225,9 +251,34 @@ describe('custom view tools', () => {
     expect(agentText(result)).toContain('"name": "本周执行"');
 
     const text = renderPlain(tool, result);
-    expect(text).toContain('✓ 本周执行');
+    expect(text).toContain('✓ Created 本周执行');
     expect(text).toContain('team: BES');
     expect(text).toContain('shared');
+  });
+
+  it('renders create call arguments including team key, shared flag, and filters', () => {
+    const tool = toolByName(tools, 'linear_create_view');
+    const call = renderCallPlain(tool, {
+      name: 'Roadmap',
+      teamKey: 'BES',
+      shared: false,
+      projectFilterData: { state: { eq: 'started' } },
+    });
+    expect(call).toContain('team=BES');
+    expect(call).toContain('shared=false');
+    expect(call).toContain('projectFilter={…}');
+  });
+
+  it('renders list errors instead of an empty state', () => {
+    const tool = toolByName(tools, 'linear_list_views');
+    const text = renderPlain(
+      tool,
+      { content: [{ type: 'text' as const, text: 'Linear GraphQL error: rate limited' }] },
+      { isError: true },
+    );
+
+    expect(text).toContain('✗ Linear GraphQL error: rate limited');
+    expect(text).not.toContain('No custom views found');
   });
 
   it('updates a view with only the provided fields', async () => {
@@ -243,7 +294,7 @@ describe('custom view tools', () => {
       'mutation UpdateCustomView($id: String!, $input: CustomViewUpdateInput!)',
     );
     expect(variables).toEqual({ id: 'v1', input: { name: 'Renamed' } });
-    expect(renderPlain(tool, result)).toContain('✓ Renamed');
+    expect(renderPlain(tool, result)).toContain('✓ Updated Renamed');
   });
 
   it.each([
@@ -308,7 +359,10 @@ describe('custom view tools', () => {
     expect(query).toContain('mutation DeleteCustomView($id: String!)');
     expect(variables).toEqual({ id: 'v1' });
     expect(agentText(result)).toContain('"success": true');
-    expect(renderPlain(tool, result)).toContain('✓ View deleted');
+    expect(renderCallPlain(tool, { id: 'v1' })).toContain('id=v1');
+    expect(renderPlain(tool, result, { isError: false, args: { id: 'v1' } })).toContain(
+      '✓ Deleted view v1',
+    );
   });
 
   it('renders a delete failure when Linear reports no success', async () => {
@@ -317,7 +371,9 @@ describe('custom view tools', () => {
 
     const result = await executeTool(tool, { id: 'v1' });
 
-    expect(renderPlain(tool, result)).toContain('✗ Failed to delete view');
+    expect(renderPlain(tool, result, { isError: false, args: { id: 'v1' } })).toContain(
+      '✗ Failed to delete view v1',
+    );
   });
 
   it('sets view preferences with the user/customView envelope', async () => {
@@ -344,6 +400,10 @@ describe('custom view tools', () => {
       },
     });
     expect(agentText(result)).toContain('"issueGrouping": "assignee"');
-    expect(renderPlain(tool, result)).toContain('✓ View preferences updated · group: assignee');
+    const text = renderPlain(tool, result, { isError: false, args: { viewId: 'v1' } });
+    expect(text).toContain('✓ View preferences updated');
+    expect(text).toContain('view v1');
+    expect(text).toContain('issueGrouping: assignee');
+    expect(text).toContain('fieldPriority: true');
   });
 });

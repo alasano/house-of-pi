@@ -9,6 +9,7 @@ import {
   removeWorkspace,
   switchWorkspace,
   setAuthPreference,
+  linearGraphQL,
   type WorkspaceCredentials,
 } from '../extensions/client';
 
@@ -125,6 +126,82 @@ describe('workspace management', () => {
   it('switchWorkspace throws for unknown workspace', async () => {
     await addWorkspace('a', 'key-a');
     await expect(switchWorkspace('nope')).rejects.toThrow('does not exist');
+  });
+});
+
+describe('linearGraphQL error surfacing', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function stubFetch(response: {
+    ok: boolean;
+    status: number;
+    statusText: string;
+    body?: unknown;
+  }) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        json: async () => {
+          if (response.body === undefined) throw new Error('not json');
+          return response.body;
+        },
+      })),
+    );
+  }
+
+  it('prefers extensions.userPresentableMessage over the bare message', async () => {
+    stubFetch({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      body: {
+        errors: [
+          {
+            message: 'Argument Validation Error',
+            extensions: { userPresentableMessage: 'icon must be a valid icon name' },
+          },
+        ],
+      },
+    });
+
+    await expect(linearGraphQL('key', 'query { viewer { id } }', {})).rejects.toThrow(
+      'Linear GraphQL error: icon must be a valid icon name',
+    );
+  });
+
+  it('surfaces validation constraint messages when no presentable message exists', async () => {
+    stubFetch({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      body: {
+        errors: [
+          {
+            message: 'Argument Validation Error',
+            extensions: {
+              validationErrors: [{ constraints: { isIn: 'state must be a valid project state' } }],
+            },
+          },
+        ],
+      },
+    });
+
+    await expect(linearGraphQL('key', 'query { viewer { id } }', {})).rejects.toThrow(
+      'Linear GraphQL error: state must be a valid project state',
+    );
+  });
+
+  it('falls back to the HTTP status for non-JSON error responses', async () => {
+    stubFetch({ ok: false, status: 502, statusText: 'Bad Gateway' });
+
+    await expect(linearGraphQL('key', 'query { viewer { id } }', {})).rejects.toThrow(
+      'Linear API request failed: 502 Bad Gateway',
+    );
   });
 });
 

@@ -190,8 +190,9 @@ describe('cycle tools', () => {
     });
   });
 
-  it('renders cycle mutation success', () => {
-    const tool = toolByName(tools, 'linear_create_cycle');
+  it('renders cycle mutation results with action verbs', () => {
+    const createTool = toolByName(tools, 'linear_create_cycle');
+    const updateTool = toolByName(tools, 'linear_update_cycle');
     const result = {
       content: [{ type: 'text' as const, text: '{}' }],
       details: {
@@ -205,9 +206,35 @@ describe('cycle tools', () => {
         },
       },
     };
-    const text = renderPlain(tool, result);
+    const text = renderPlain(createTool, result);
+    expect(text).toContain('✓ Created W33');
     expect(text).toContain('upcoming · next');
     expect(text).toContain('progress 25%');
+    expect(text).toContain('show full JSON');
+    expect(renderPlain(updateTool, result)).toContain('✓ Updated W33');
+  });
+
+  it('renders update call arguments including id and completedAt', () => {
+    const tool = toolByName(tools, 'linear_update_cycle');
+    const call = renderCallPlain(tool, {
+      id: 'cycle-1',
+      name: 'W33',
+      completedAt: '2026-08-24T12:34:56.000Z',
+    });
+    expect(call).toContain('id=cycle-1');
+    expect(call).toContain('completed=2026-08-24T12:34:56.000Z');
+  });
+
+  it('renders list errors instead of an empty state', () => {
+    const tool = toolByName(tools, 'linear_list_cycles');
+    const text = renderPlain(
+      tool,
+      { content: [{ type: 'text' as const, text: 'Linear GraphQL error: rate limited' }] },
+      { isError: true },
+    );
+
+    expect(text).toContain('✗ Linear GraphQL error: rate limited');
+    expect(text).not.toContain('No cycles found');
   });
 
   it('requests Linear authoritative cycle status and archive fields', async () => {
