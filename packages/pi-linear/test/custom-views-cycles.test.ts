@@ -55,6 +55,17 @@ function renderedText(
   return component?.render(width).join('\n') ?? '';
 }
 
+function renderedCall(
+  tool: { renderCall?: unknown },
+  args: Record<string, unknown>,
+  width = 120,
+): string {
+  const renderer = tool.renderCall as
+    | ((args: Record<string, unknown>, theme: unknown) => { render: (width: number) => string[] })
+    | undefined;
+  return renderer?.(args, fakeTheme()).render(width).join('\n') ?? '';
+}
+
 function toolByName(tools: Array<{ name: string }>, name: string) {
   const tool = tools.find((t) => t.name === name);
   expect(tool, `expected tool ${name} to exist`).toBeDefined();
@@ -184,12 +195,126 @@ describe('cycle tools', () => {
     clientMocks.resolveTeamId.mockReset();
   });
 
-  it('exposes list/create/update tools', () => {
+  it('exposes list/get/create/update/archive tools', () => {
     expect(tools.map((t) => t.name)).toEqual([
       'linear_list_cycles',
+      'linear_get_cycle',
       'linear_create_cycle',
       'linear_update_cycle',
+      'linear_archive_cycle',
     ]);
+  });
+
+  it('get_cycle and archive_cycle require only a cycle reference', () => {
+    const getTool = toolByName(tools, 'linear_get_cycle');
+    const archiveTool = toolByName(tools, 'linear_archive_cycle');
+
+    for (const tool of [getTool, archiveTool]) {
+      expect(Object.keys(tool.parameters.properties)).toEqual(['id']);
+      expect(tool.parameters.required).toEqual(['id']);
+    }
+    expect(archiveTool.description).toContain('Never call this tool automatically');
+    expect(archiveTool.description).toContain('explicitly requests');
+  });
+
+  it('gets a cycle by ID or slug and renders a labeled detail card', async () => {
+    const tool = toolByName(tools, 'linear_get_cycle');
+    const cycle = {
+      id: 'cycle-1',
+      name: 'PI Cycle 42',
+      description: 'Ship the cycle tools.',
+      startsAt: '2026-08-01T00:00:00.000Z',
+      endsAt: '2026-08-08T00:00:00.000Z',
+      completedAt: '2026-08-08T00:00:00.000Z',
+      archivedAt: '2026-09-01T12:00:00.000Z',
+      autoArchivedAt: '2026-09-01T12:00:00.000Z',
+      isPast: true,
+      isPrevious: true,
+      progress: 0.78,
+      team: { id: 'team-1', key: 'PI', name: 'Pi' },
+    };
+    clientMocks.linearGraphQL.mockResolvedValue({ cycle });
+
+    const result = await executeTool(tool, { id: 'pi-cycle-42' });
+
+    const query = clientMocks.linearGraphQL.mock.calls[0]?.[1] as string;
+    const variables = clientMocks.linearGraphQL.mock.calls[0]?.[2];
+    expect(query).toContain('query GetCycle($id: String!)');
+    expect(query).toContain('cycle(id: $id)');
+    expect(variables).toEqual({ id: 'pi-cycle-42' });
+    expect((result as { content: Array<{ text: string }> }).content[0]?.text).toContain(
+      '"name": "PI Cycle 42"',
+    );
+
+    expect(renderedCall(tool, { id: 'pi-cycle-42' })).toContain('linear_get_cycle id=pi-cycle-42');
+    const text = renderedText(tool, result);
+    expect(text).toContain('✓ Cycle PI Cycle 42');
+    expect(text).toMatch(/Team\s+PI/);
+    expect(text).toMatch(/Status\s+completed · previous/);
+    expect(text).toMatch(/Progress\s+78%/);
+    expect(text).toMatch(/Range\s+2026-08-01 → 2026-08-08/);
+    expect(text).toMatch(/Archived\s+2026-09-01 \(auto\)/);
+    expect(text).toMatch(/Description\s+Ship the cycle tools\./);
+    expect(text).not.toContain('all assigned issues unlinked');
+  });
+
+  it('archives a cycle, returns its details, and renders the unlink consequence', async () => {
+    const tool = toolByName(tools, 'linear_archive_cycle');
+    const cycle = {
+      id: 'cycle-1',
+      name: 'PI Cycle 42',
+      startsAt: '2026-08-01T00:00:00.000Z',
+      endsAt: '2026-08-08T00:00:00.000Z',
+      completedAt: '2026-08-08T00:00:00.000Z',
+      archivedAt: '2026-09-01T12:00:00.000Z',
+      autoArchivedAt: null,
+      isPast: true,
+      isPrevious: true,
+      progress: 0.78,
+      team: { id: 'team-1', key: 'PI', name: 'Pi' },
+    };
+    clientMocks.linearGraphQL.mockResolvedValue({
+      cycleArchive: { success: true, entity: cycle },
+    });
+
+    const result = await executeTool(tool, { id: 'cycle-1' });
+
+    const query = clientMocks.linearGraphQL.mock.calls[0]?.[1] as string;
+    const variables = clientMocks.linearGraphQL.mock.calls[0]?.[2];
+    expect(query).toContain('mutation ArchiveCycle($id: String!)');
+    expect(query).toContain('cycleArchive(id: $id)');
+    expect(query).toContain('success');
+    expect(query).toContain('entity {');
+    expect(variables).toEqual({ id: 'cycle-1' });
+    expect((result as { content: Array<{ text: string }> }).content[0]?.text).toContain(
+      '"success": true',
+    );
+
+    expect(renderedCall(tool, { id: 'cycle-1' })).toContain('linear_archive_cycle id=cycle-1');
+    const text = renderedText(tool, result);
+    expect(text).toContain('✓ Archived PI Cycle 42');
+    expect(text).toMatch(/Team\s+PI/);
+    expect(text).toMatch(/Status\s+completed · previous/);
+    expect(text).toMatch(/Progress\s+78%/);
+    expect(text).toMatch(/Range\s+2026-08-01 → 2026-08-08/);
+    expect(text).toMatch(/Archived\s+2026-09-01/);
+    expect(text).toMatch(/Issues\s+all assigned issues unlinked/);
+  });
+
+  it.each([
+    {
+      payload: { success: false, entity: null },
+      message: 'Linear failed to archive the cycle.',
+    },
+    {
+      payload: { success: true, entity: null },
+      message: 'Linear reported that it archived the cycle but returned no cycle.',
+    },
+  ])('archive_cycle rejects an invalid payload: $message', async ({ payload, message }) => {
+    const tool = toolByName(tools, 'linear_archive_cycle');
+    clientMocks.linearGraphQL.mockResolvedValue({ cycleArchive: payload });
+
+    await expect(executeTool(tool, { id: 'cycle-1' })).rejects.toThrow(message);
   });
 
   it('create_cycle requires startsAt and endsAt', () => {

@@ -6,6 +6,10 @@ import { CYCLE_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject } from '../util';
 import {
+  renderLinearArchiveCycleCall,
+  renderLinearArchiveCycleResult,
+  renderLinearGetCycleCall,
+  renderLinearGetCycleResult,
   renderLinearCycleListCall,
   renderLinearCycleListResult,
   renderLinearCycleMutationCall,
@@ -15,6 +19,11 @@ import {
 type CycleMutationPayload = {
   success: boolean;
   cycle: JsonObject | null;
+};
+
+type CycleArchivePayload = {
+  success: boolean;
+  entity: JsonObject | null;
 };
 
 function requireCycle(payload: CycleMutationPayload, operation: 'create' | 'update'): JsonObject {
@@ -27,6 +36,16 @@ function requireCycle(payload: CycleMutationPayload, operation: 'create' | 'upda
     );
   }
   return payload.cycle;
+}
+
+function requireArchivedCycle(payload: CycleArchivePayload): JsonObject {
+  if (!payload.success) {
+    throw new Error('Linear failed to archive the cycle.');
+  }
+  if (!payload.entity) {
+    throw new Error('Linear reported that it archived the cycle but returned no cycle.');
+  }
+  return payload.entity;
 }
 
 export function cycleTools() {
@@ -109,6 +128,37 @@ export function cycleTools() {
         });
       },
       renderResult: renderLinearCycleListResult,
+    }),
+
+    defineTool({
+      name: 'linear_get_cycle',
+      label: 'Linear Get Cycle',
+      description: 'Get a Linear cycle by ID or slug.',
+      parameters: Type.Object({
+        id: Type.String({ description: 'Cycle ID or slug.' }),
+      }),
+      renderCall: renderLinearGetCycleCall,
+      async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+        return withLinearAuth(ctx, signal, async (apiKey) => {
+          const data = await linearGraphQL<{ cycle: JsonObject }>(
+            apiKey,
+            `query GetCycle($id: String!) {
+              cycle(id: $id) {
+                ${CYCLE_SELECTION}
+              }
+            }`,
+            { id: params.id },
+            signal,
+          );
+
+          const cycle = data.cycle;
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ cycle }, null, 2) }],
+            details: { cycle },
+          };
+        });
+      },
+      renderResult: renderLinearGetCycleResult,
     }),
 
     defineTool({
@@ -222,6 +272,41 @@ export function cycleTools() {
         });
       },
       renderResult: renderLinearCycleMutationResult,
+    }),
+
+    defineTool({
+      name: 'linear_archive_cycle',
+      label: 'Linear Archive Cycle',
+      description:
+        'Immediately archive a Linear cycle by ID. Archiving unlinks every issue currently assigned to the cycle. Linear normally auto-archives eligible cycles according to team settings. Never call this tool automatically for a completed, past, or eligible cycle; use it only when the user explicitly requests that exact cycle be archived.',
+      parameters: Type.Object({
+        id: Type.String({ description: 'Exact ID of the cycle the user requested to archive.' }),
+      }),
+      renderCall: renderLinearArchiveCycleCall,
+      async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+        return withLinearAuth(ctx, signal, async (apiKey) => {
+          const data = await linearGraphQL<{ cycleArchive: CycleArchivePayload }>(
+            apiKey,
+            `mutation ArchiveCycle($id: String!) {
+              cycleArchive(id: $id) {
+                success
+                entity {
+                  ${CYCLE_SELECTION}
+                }
+              }
+            }`,
+            { id: params.id },
+            signal,
+          );
+
+          const cycle = requireArchivedCycle(data.cycleArchive);
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ success: true, cycle }, null, 2) }],
+            details: { success: true, cycle },
+          };
+        });
+      },
+      renderResult: renderLinearArchiveCycleResult,
     }),
   ];
 }

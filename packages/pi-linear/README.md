@@ -209,8 +209,10 @@ List and search results include `pageInfo` in the JSON output for cursor paginat
 | `linear_delete_view`          | Delete a custom view by id                                         |
 | `linear_set_view_preferences` | Set display preferences (grouping & columns) for a custom view     |
 | `linear_list_cycles`          | List cycles (filter by team, pagination, order)                    |
+| `linear_get_cycle`            | Get cycle details by id or slug                                    |
 | `linear_create_cycle`         | Create a cycle for a team (startsAt / endsAt, optional name)       |
 | `linear_update_cycle`         | Update a cycle by id (name, dates, completion)                     |
+| `linear_archive_cycle`        | Archive a cycle by id and unlink its assigned issues               |
 
 Custom view display settings (group by assignee/status/priority, show Estimate/Due date
 columns) are stored per user via `linear_set_view_preferences`; open the view afterwards to

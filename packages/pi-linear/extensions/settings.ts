@@ -83,7 +83,13 @@ const TOOL_CATEGORIES = [
   {
     id: 'cycles',
     label: 'Cycles',
-    tools: ['linear_list_cycles', 'linear_create_cycle', 'linear_update_cycle'],
+    tools: [
+      'linear_list_cycles',
+      'linear_get_cycle',
+      'linear_create_cycle',
+      'linear_update_cycle',
+      'linear_archive_cycle',
+    ],
   },
   {
     id: 'customViews',
