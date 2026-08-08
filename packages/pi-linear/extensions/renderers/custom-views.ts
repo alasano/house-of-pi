@@ -15,6 +15,7 @@ import {
   mutedStyle,
   renderLinearToolCall,
   renderResponsiveTable,
+  textContent,
   toolOutputStyle,
   truncate,
   truncateLine,
@@ -209,6 +210,10 @@ export function renderLinearCustomViewMutationResult(
   context: LinearToolRenderContext,
 ): Text {
   if (options.isPartial) return new Text(theme.fg('warning', 'Working…'), 0, 0);
+  if (context.isError) {
+    const message = cleanOneLine(textContent(result)) || 'Custom view operation failed.';
+    return new Text(theme.fg('error', `✗ ${message}`), 0, 0);
+  }
   if (shouldShowJson(options, context)) return expandedJson(result, theme);
 
   const view = viewDetails(result).view;

@@ -14,6 +14,26 @@ import {
   renderLinearCustomViewMutationResult,
 } from '../renderers/custom-views';
 
+type CustomViewMutationPayload = {
+  success: boolean;
+  customView: JsonObject | null;
+};
+
+function requireView(
+  payload: CustomViewMutationPayload,
+  operation: 'create' | 'update',
+): JsonObject {
+  if (!payload.success) {
+    throw new Error(`Linear failed to ${operation} the view.`);
+  }
+  if (!payload.customView) {
+    throw new Error(
+      `Linear reported that it ${operation === 'create' ? 'created' : 'updated'} the view but returned no view.`,
+    );
+  }
+  return payload.customView;
+}
+
 export function customViewTools() {
   return [
     defineTool({
@@ -123,11 +143,12 @@ export function customViewTools() {
           });
 
           const data = await linearGraphQL<{
-            customViewCreate: { customView: JsonObject };
+            customViewCreate: CustomViewMutationPayload;
           }>(
             apiKey,
             `mutation CreateCustomView($input: CustomViewCreateInput!) {
               customViewCreate(input: $input) {
+                success
                 customView {
                   ${CUSTOM_VIEW_SELECTION}
                 }
@@ -137,7 +158,7 @@ export function customViewTools() {
             signal,
           );
 
-          const view = data.customViewCreate.customView;
+          const view = requireView(data.customViewCreate, 'create');
           return {
             content: [{ type: 'text', text: JSON.stringify({ view }, null, 2) }],
             details: { view },
@@ -177,11 +198,12 @@ export function customViewTools() {
           });
 
           const data = await linearGraphQL<{
-            customViewUpdate: { customView: JsonObject };
+            customViewUpdate: CustomViewMutationPayload;
           }>(
             apiKey,
             `mutation UpdateCustomView($id: String!, $input: CustomViewUpdateInput!) {
               customViewUpdate(id: $id, input: $input) {
+                success
                 customView {
                   ${CUSTOM_VIEW_SELECTION}
                 }
@@ -191,7 +213,7 @@ export function customViewTools() {
             signal,
           );
 
-          const view = data.customViewUpdate.customView;
+          const view = requireView(data.customViewUpdate, 'update');
           return {
             content: [{ type: 'text', text: JSON.stringify({ view }, null, 2) }],
             details: { view },

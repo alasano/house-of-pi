@@ -74,7 +74,7 @@ export function cycleTools() {
 
           const filter = compactObject({
             ...asObject(params.filter),
-            team: teamId ? { id: { eq: teamId } } : undefined,
+            ...(teamId ? { team: { id: { eq: teamId } } } : {}),
           });
 
           const variables = compactObject({

@@ -30,7 +30,7 @@ function padVisible(text: string, width: number): string {
   return `${text}${' '.repeat(deficit)}`;
 }
 
-const TOOL_CATEGORIES = [
+export const TOOL_CATEGORIES = [
   {
     id: 'issues',
     label: 'Issues',
