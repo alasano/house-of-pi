@@ -1,7 +1,7 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
-import { PaginationParams, paginationVariables, FilterParam, RawInputParam } from '../params';
+import { PaginationParams, paginationVariables, filterParam, inputParam } from '../params';
 import { COMMENT_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asString, GenericObjectSchema } from '../util';
@@ -23,7 +23,7 @@ export function commentTools() {
       description: 'List comments. Supports full comments query args.',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
+        filter: filterParam('CommentFilter'),
       }),
       renderCall: renderLinearCommentListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -87,10 +87,16 @@ export function commentTools() {
       parameters: Type.Object({
         body: Type.Optional(Type.String()),
         bodyData: Type.Optional(GenericObjectSchema),
-        createAsUser: Type.Optional(Type.String()),
+        createAsUser: Type.Optional(Type.String({ description: 'OAuth actor=app tokens only.' })),
         createOnSyncedSlackThread: Type.Optional(Type.Boolean()),
-        createdAt: Type.Optional(Type.String()),
-        displayIconUrl: Type.Optional(Type.String()),
+        createdAt: Type.Optional(
+          Type.String({
+            description: 'ISO-8601 datetime in the past (for imports).',
+          }),
+        ),
+        displayIconUrl: Type.Optional(
+          Type.String({ description: 'OAuth actor=app with createAsUser only.' }),
+        ),
         doNotSubscribeToIssue: Type.Optional(Type.Boolean()),
         documentContentId: Type.Optional(Type.String()),
         id: Type.Optional(Type.String()),
@@ -101,7 +107,7 @@ export function commentTools() {
         projectUpdateId: Type.Optional(Type.String()),
         quotedText: Type.Optional(Type.String()),
         subscriberIds: Type.Optional(Type.Array(Type.String())),
-        ...RawInputParam,
+        input: inputParam('CommentCreateInput'),
       }),
       renderCall: renderLinearCreateCommentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -170,7 +176,7 @@ export function commentTools() {
         id: Type.String(),
         body: Type.Optional(Type.String()),
         quotedText: Type.Optional(Type.String()),
-        ...RawInputParam,
+        input: inputParam('CommentUpdateInput'),
       }),
       renderCall: renderLinearUpdateCommentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {

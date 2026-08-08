@@ -254,7 +254,6 @@ export function renderLinearUpdateIssueCall(args: ToolArgs | undefined, theme: T
     ['assigneeId', 'assignee'],
     ['priority', 'priority'],
     ['dueDate', 'due'],
-    ['clearDueDate', 'clearDue'],
     ['labelIds', 'labels'],
     ['addedLabelIds', 'addLabels'],
     ['removedLabelIds', 'removeLabels'],

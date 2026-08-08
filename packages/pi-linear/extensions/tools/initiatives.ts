@@ -4,9 +4,15 @@ import { withLinearAuth, linearGraphQL } from '../client';
 import {
   PaginationParams,
   paginationVariables,
-  FilterParam,
-  SortParam,
-  RawInputParam,
+  filterParam,
+  sortParam,
+  inputParam,
+  INITIATIVE_SORT_KEYS,
+  stringEnum,
+  DateResolutionTypeSchema,
+  FrequencyResolutionTypeSchema,
+  DaySchema,
+  nullable,
 } from '../params';
 import { INITIATIVE_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
@@ -24,6 +30,16 @@ import {
   renderLinearUnarchiveInitiativeCall,
 } from '../renderers/initiatives';
 
+const INITIATIVE_CREATE_ONLY = ['id'] as const;
+const INITIATIVE_UPDATE_ONLY = [
+  'frequencyResolution',
+  'trashed',
+  'updateReminderFrequency',
+  'updateReminderFrequencyInWeeks',
+  'updateRemindersDay',
+  'updateRemindersHour',
+] as const;
+
 export function initiativeTools() {
   return [
     defineTool({
@@ -32,8 +48,11 @@ export function initiativeTools() {
       description: 'List initiatives. Supports full initiatives query args.',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
-        ...SortParam,
+        filter: filterParam(
+          'InitiativeFilter',
+          'Closed sets: status (Proposed, Planned, Active, Completed, Canceled); health (onTrack, atRisk, offTrack).',
+        ),
+        sort: sortParam('InitiativeSortInput', INITIATIVE_SORT_KEYS),
       }),
       renderCall: renderLinearInitiativeListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -131,31 +150,60 @@ export function initiativeTools() {
       description:
         'Create or update an initiative. If initiativeId is provided, uses initiativeUpdate; otherwise uses initiativeCreate.',
       parameters: Type.Object({
-        initiativeId: Type.Optional(Type.String()),
+        initiativeId: Type.Optional(Type.String({ description: 'Initiative id for update mode.' })),
         color: Type.Optional(Type.String()),
         content: Type.Optional(Type.String()),
         description: Type.Optional(Type.String()),
         icon: Type.Optional(Type.String()),
-        id: Type.Optional(Type.String()),
-        name: Type.Optional(Type.String()),
+        id: Type.Optional(
+          Type.String({ description: 'InitiativeCreateInput.id (create mode only).' }),
+        ),
+        name: Type.Optional(Type.String({ description: 'Required in create mode.' })),
         ownerId: Type.Optional(Type.String()),
         sortOrder: Type.Optional(Type.Number()),
-        status: Type.Optional(Type.String()),
-        targetDate: Type.Optional(Type.String()),
-        targetDateResolution: Type.Optional(Type.String()),
-        frequencyResolution: Type.Optional(Type.String()),
-        trashed: Type.Optional(Type.Boolean()),
-        updateReminderFrequency: Type.Optional(Type.Number()),
-        updateReminderFrequencyInWeeks: Type.Optional(Type.Number()),
-        updateRemindersDay: Type.Optional(Type.String()),
-        updateRemindersHour: Type.Optional(Type.Integer()),
-        ...RawInputParam,
+        status: Type.Optional(
+          stringEnum(['Proposed', 'Planned', 'Active', 'Completed', 'Canceled'], {
+            description: 'Initiative status.',
+          }),
+        ),
+        targetDate: nullable(
+          Type.String(),
+          'Target date (ISO date, YYYY-MM-DD). Set to null to clear.',
+        ),
+        targetDateResolution: Type.Optional(DateResolutionTypeSchema),
+        frequencyResolution: Type.Optional(FrequencyResolutionTypeSchema),
+        trashed: nullable(Type.Boolean(), 'Set true to trash, null to restore (update mode only).'),
+        updateReminderFrequency: Type.Optional(Type.Number({ description: 'Update mode only.' })),
+        updateReminderFrequencyInWeeks: Type.Optional(
+          Type.Number({ description: 'Update mode only.' }),
+        ),
+        updateRemindersDay: Type.Optional(DaySchema),
+        updateRemindersHour: Type.Optional(
+          Type.Integer({
+            minimum: 0,
+            maximum: 23,
+            description: 'Hour of day (0-23) for update reminders (update mode only).',
+          }),
+        ),
+        input: inputParam(
+          'InitiativeCreateInput (initiativeId omitted) or InitiativeUpdateInput (initiativeId provided)',
+          'Enum fields: status (Proposed, Planned, Active, Completed, Canceled); targetDateResolution (month, quarter, halfYear, year); update mode also: frequencyResolution (daily, weekly), updateRemindersDay (Sunday-Saturday).',
+        ),
       }),
       renderCall: renderLinearSaveInitiativeCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
           const updateId = asString(params.initiativeId);
+
+          const invalidForMode = (
+            updateId ? INITIATIVE_CREATE_ONLY : INITIATIVE_UPDATE_ONLY
+          ).filter((key) => params[key] !== undefined || rawInput[key] !== undefined);
+          if (invalidForMode.length) {
+            throw new Error(
+              `Params not valid in ${updateId ? 'update' : 'create'} mode: ${invalidForMode.join(', ')}.`,
+            );
+          }
 
           const input = {
             ...rawInput,
@@ -254,7 +302,8 @@ export function initiativeTools() {
     defineTool({
       name: 'linear_delete_initiative',
       label: 'Linear Delete Initiative',
-      description: 'Delete an initiative by id.',
+      description:
+        'Move an initiative to trash by id (restorable via linear_unarchive_initiative).',
       parameters: Type.Object({
         initiativeId: Type.String(),
       }),

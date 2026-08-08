@@ -1,7 +1,7 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { withLinearAuth, linearGraphQL } from '../client';
-import { PaginationParams, paginationVariables, FilterParam, RawInputParam } from '../params';
+import { PaginationParams, paginationVariables, filterParam, inputParam } from '../params';
 import { MILESTONE_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
 import { compactObject, asObject, asString, GenericObjectSchema } from '../util';
@@ -24,7 +24,7 @@ export function milestoneTools() {
       description: 'List project milestones. Supports full projectMilestones query args.',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
+        filter: filterParam('ProjectMilestoneFilter'),
       }),
       renderCall: renderLinearMilestoneListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -121,21 +121,29 @@ export function milestoneTools() {
       description:
         'Create or update a project milestone. If milestoneId is provided, uses projectMilestoneUpdate; otherwise uses projectMilestoneCreate.',
       parameters: Type.Object({
-        milestoneId: Type.Optional(Type.String()),
+        milestoneId: Type.Optional(Type.String({ description: 'Milestone id for update mode.' })),
         description: Type.Optional(Type.String()),
         descriptionData: Type.Optional(GenericObjectSchema),
-        id: Type.Optional(Type.String()),
-        name: Type.Optional(Type.String()),
-        projectId: Type.Optional(Type.String()),
+        id: Type.Optional(
+          Type.String({ description: 'ProjectMilestoneCreateInput.id (create mode only).' }),
+        ),
+        name: Type.Optional(Type.String({ description: 'Required in create mode.' })),
+        projectId: Type.Optional(Type.String({ description: 'Required in create mode.' })),
         sortOrder: Type.Optional(Type.Number()),
-        targetDate: Type.Optional(Type.String()),
-        ...RawInputParam,
+        targetDate: Type.Optional(Type.String({ description: 'ISO date (YYYY-MM-DD).' })),
+        input: inputParam(
+          'ProjectMilestoneCreateInput (milestoneId omitted) or ProjectMilestoneUpdateInput (milestoneId provided)',
+        ),
       }),
       renderCall: renderLinearMilestoneSaveCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
           const updateId = asString(params.milestoneId);
+
+          if (updateId && (params.id !== undefined || rawInput.id !== undefined)) {
+            throw new Error('Params not valid in update mode: id.');
+          }
 
           const input = {
             ...rawInput,

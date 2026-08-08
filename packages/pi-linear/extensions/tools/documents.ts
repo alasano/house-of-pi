@@ -4,13 +4,16 @@ import { withLinearAuth, linearGraphQL, resolveTeamId } from '../client';
 import {
   PaginationParams,
   paginationVariables,
-  FilterParam,
-  RawInputParam,
+  filterParam,
+  sortParam,
+  inputParam,
+  DOCUMENT_SORT_KEYS,
+  nullable,
   TeamConvenienceParams,
 } from '../params';
 import { DOCUMENT_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
-import { compactObject, asObject, asString } from '../util';
+import { compactObject, asObject, asObjectArray, asString } from '../util';
 import {
   renderLinearCreateDocumentCall,
   renderLinearDeleteDocumentCall,
@@ -61,7 +64,8 @@ export function documentTools() {
       description: 'List documents. Supports full documents query args.',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
+        filter: filterParam('DocumentFilter'),
+        sort: sortParam('DocumentSortInput', DOCUMENT_SORT_KEYS),
       }),
       renderCall: renderLinearDocumentListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -69,6 +73,7 @@ export function documentTools() {
           const variables = compactObject({
             ...paginationVariables(params, 20),
             filter: asObject(params.filter),
+            sort: asObjectArray(params.sort),
           });
 
           const data = await linearGraphQL<{
@@ -83,6 +88,7 @@ export function documentTools() {
               $includeArchived: Boolean
               $last: Int
               $orderBy: PaginationOrderBy
+              $sort: [DocumentSortInput!]
             ) {
               documents(
                 after: $after
@@ -92,6 +98,7 @@ export function documentTools() {
                 includeArchived: $includeArchived
                 last: $last
                 orderBy: $orderBy
+                sort: $sort
               ) {
                 nodes {
                   ${DOCUMENT_SELECTION}
@@ -170,8 +177,8 @@ export function documentTools() {
         sortOrder: Type.Optional(Type.Number()),
         subscriberIds: Type.Optional(Type.Array(Type.String())),
         ...TeamConvenienceParams,
-        title: Type.Optional(Type.String()),
-        ...RawInputParam,
+        title: Type.Optional(Type.String({ description: 'Required (here or in input).' })),
+        input: inputParam('DocumentCreateInput'),
       }),
       renderCall: renderLinearCreateDocumentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -255,7 +262,7 @@ export function documentTools() {
         color: Type.Optional(Type.String()),
         content: Type.Optional(Type.String()),
         cycleId: Type.Optional(Type.String()),
-        hiddenAt: Type.Optional(Type.String()),
+        hiddenAt: nullable(Type.String(), 'ISO-8601 datetime. Set to null to unhide.'),
         icon: Type.Optional(Type.String()),
         initiativeId: Type.Optional(Type.String()),
         issueId: Type.Optional(Type.String()),
@@ -267,8 +274,8 @@ export function documentTools() {
         subscriberIds: Type.Optional(Type.Array(Type.String())),
         ...TeamConvenienceParams,
         title: Type.Optional(Type.String()),
-        trashed: Type.Optional(Type.Boolean()),
-        ...RawInputParam,
+        trashed: nullable(Type.Boolean(), 'Set true to trash, null to restore.'),
+        input: inputParam('DocumentUpdateInput'),
       }),
       renderCall: renderLinearUpdateDocumentCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -349,7 +356,8 @@ export function documentTools() {
     defineTool({
       name: 'linear_delete_document',
       label: 'Linear Delete Document',
-      description: 'Delete a document by id.',
+      description:
+        'Move a document to trash by id (archived, not permanently removed; restorable via linear_unarchive_document).',
       parameters: Type.Object({
         documentId: Type.String(),
       }),

@@ -4,9 +4,14 @@ import { withLinearAuth, linearGraphQL } from '../client';
 import {
   PaginationParams,
   paginationVariables,
-  FilterParam,
-  SortParam,
-  RawInputParam,
+  filterParam,
+  sortParam,
+  inputParam,
+  PROJECT_SORT_KEYS,
+  DateResolutionTypeSchema,
+  FrequencyResolutionTypeSchema,
+  DaySchema,
+  nullable,
 } from '../params';
 import { PROJECT_DETAIL_SELECTION, PROJECT_LIST_SELECTION } from '../selections';
 import type { JsonObject, LinearConnection } from '../types';
@@ -24,6 +29,22 @@ import {
   renderLinearUnarchiveProjectCall,
 } from '../renderers/projects';
 
+const PROJECT_CREATE_ONLY = ['id', 'templateId', 'useDefaultTemplate', 'slackChannelName'] as const;
+const PROJECT_UPDATE_ONLY = [
+  'canceledAt',
+  'completedAt',
+  'frequencyResolution',
+  'projectUpdateRemindersPausedUntilAt',
+  'slackIssueComments',
+  'slackIssueStatuses',
+  'slackNewIssue',
+  'trashed',
+  'updateReminderFrequency',
+  'updateReminderFrequencyInWeeks',
+  'updateRemindersDay',
+  'updateRemindersHour',
+] as const;
+
 export function projectTools() {
   return [
     defineTool({
@@ -32,8 +53,11 @@ export function projectTools() {
       description: 'List projects. Supports full projects query args and raw filter/sort.',
       parameters: Type.Object({
         ...PaginationParams,
-        ...FilterParam,
-        ...SortParam,
+        filter: filterParam(
+          'ProjectFilter',
+          'Closed sets: status.type (backlog, planned, started, paused, completed, canceled); health (onTrack, atRisk, offTrack); priority (0-4).',
+        ),
+        sort: sortParam('ProjectSortInput', PROJECT_SORT_KEYS),
       }),
       renderCall: renderLinearProjectListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -132,8 +156,10 @@ export function projectTools() {
         'Create or update a project. Pass projectId to update an existing project; omit it to create. The id param is only for pre-setting a UUID on create.',
       parameters: Type.Object({
         projectId: Type.Optional(Type.String({ description: 'Project id for update mode.' })),
-        id: Type.Optional(Type.String({ description: 'ProjectCreateInput.id' })),
-        name: Type.Optional(Type.String()),
+        id: Type.Optional(
+          Type.String({ description: 'ProjectCreateInput.id (create mode only).' }),
+        ),
+        name: Type.Optional(Type.String({ description: 'Required in create mode.' })),
         description: Type.Optional(Type.String()),
         content: Type.Optional(Type.String()),
         color: Type.Optional(Type.String()),
@@ -143,37 +169,76 @@ export function projectTools() {
         lastAppliedTemplateId: Type.Optional(Type.String()),
         leadId: Type.Optional(Type.String()),
         memberIds: Type.Optional(Type.Array(Type.String())),
-        priority: Type.Optional(Type.Number()),
+        priority: Type.Optional(
+          Type.Integer({
+            minimum: 0,
+            maximum: 4,
+            description: 'Priority (0 = No priority, 1 = Urgent, 2 = High, 3 = Medium, 4 = Low).',
+          }),
+        ),
         prioritySortOrder: Type.Optional(Type.Number()),
         sortOrder: Type.Optional(Type.Number()),
-        startDate: Type.Optional(Type.String()),
-        startDateResolution: Type.Optional(Type.String()),
+        startDate: Type.Optional(Type.String({ description: 'ISO date (YYYY-MM-DD).' })),
+        startDateResolution: Type.Optional(DateResolutionTypeSchema),
         statusId: Type.Optional(Type.String()),
-        targetDate: Type.Optional(Type.String()),
-        targetDateResolution: Type.Optional(Type.String()),
-        teamIds: Type.Optional(Type.Array(Type.String())),
-        templateId: Type.Optional(Type.String()),
-        useDefaultTemplate: Type.Optional(Type.Boolean()),
-        canceledAt: Type.Optional(Type.String()),
-        completedAt: Type.Optional(Type.String()),
-        frequencyResolution: Type.Optional(Type.String()),
-        projectUpdateRemindersPausedUntilAt: Type.Optional(Type.String()),
-        slackIssueComments: Type.Optional(Type.Boolean()),
-        slackIssueStatuses: Type.Optional(Type.Boolean()),
-        slackNewIssue: Type.Optional(Type.Boolean()),
-        trashed: Type.Optional(Type.Boolean()),
-        updateReminderFrequency: Type.Optional(Type.Number()),
-        updateReminderFrequencyInWeeks: Type.Optional(Type.Number()),
-        updateRemindersDay: Type.Optional(Type.String()),
-        updateRemindersHour: Type.Optional(Type.Integer()),
-        slackChannelName: Type.Optional(Type.String()),
-        ...RawInputParam,
+        targetDate: Type.Optional(Type.String({ description: 'ISO date (YYYY-MM-DD).' })),
+        targetDateResolution: Type.Optional(DateResolutionTypeSchema),
+        teamIds: Type.Optional(
+          Type.Array(Type.String(), { description: 'Required in create mode (non-empty).' }),
+        ),
+        templateId: Type.Optional(Type.String({ description: 'Create mode only.' })),
+        useDefaultTemplate: Type.Optional(Type.Boolean({ description: 'Create mode only.' })),
+        canceledAt: Type.Optional(
+          Type.String({ description: 'ISO-8601 datetime (update mode only).' }),
+        ),
+        completedAt: Type.Optional(
+          Type.String({ description: 'ISO-8601 datetime (update mode only).' }),
+        ),
+        frequencyResolution: Type.Optional(FrequencyResolutionTypeSchema),
+        projectUpdateRemindersPausedUntilAt: nullable(
+          Type.String(),
+          'Set to null to resume reminders (update mode only).',
+        ),
+        slackIssueComments: Type.Optional(Type.Boolean({ description: 'Update mode only.' })),
+        slackIssueStatuses: Type.Optional(Type.Boolean({ description: 'Update mode only.' })),
+        slackNewIssue: Type.Optional(Type.Boolean({ description: 'Update mode only.' })),
+        trashed: nullable(Type.Boolean(), 'Set true to trash, null to restore (update mode only).'),
+        updateReminderFrequency: Type.Optional(Type.Number({ description: 'Update mode only.' })),
+        updateReminderFrequencyInWeeks: Type.Optional(
+          Type.Number({ description: 'Update mode only.' }),
+        ),
+        updateRemindersDay: Type.Optional(DaySchema),
+        updateRemindersHour: Type.Optional(
+          Type.Integer({
+            minimum: 0,
+            maximum: 23,
+            description: 'Hour of day (0-23) for update reminders (update mode only).',
+          }),
+        ),
+        slackChannelName: Type.Optional(
+          Type.String({
+            description: 'Full Slack channel name to create/connect (create mode only).',
+          }),
+        ),
+        input: inputParam(
+          'ProjectCreateInput (projectId omitted) or ProjectUpdateInput (projectId provided)',
+          'Enum fields: startDateResolution/targetDateResolution (month, quarter, halfYear, year); update mode also: frequencyResolution (daily, weekly), updateRemindersDay (Sunday-Saturday).',
+        ),
       }),
       renderCall: renderLinearSaveProjectCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const rawInput = asObject(params.input) || {};
-          const updateId = asString(params.projectId) || asString(rawInput.id);
+          const updateId = asString(params.projectId);
+
+          const invalidForMode = (updateId ? PROJECT_CREATE_ONLY : PROJECT_UPDATE_ONLY).filter(
+            (key) => params[key] !== undefined || rawInput[key] !== undefined,
+          );
+          if (invalidForMode.length) {
+            throw new Error(
+              `Params not valid in ${updateId ? 'update' : 'create'} mode: ${invalidForMode.join(', ')}.`,
+            );
+          }
 
           const input = {
             ...rawInput,
@@ -290,7 +355,7 @@ export function projectTools() {
     defineTool({
       name: 'linear_delete_project',
       label: 'Linear Delete Project',
-      description: 'Delete a project by id.',
+      description: 'Move a project to trash by id (restorable via linear_unarchive_project).',
       parameters: Type.Object({
         projectId: Type.String(),
       }),

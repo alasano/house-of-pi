@@ -69,6 +69,8 @@ Run `/linear-settings` to open an overlay where you can choose the default outpu
 
 ## Tools (55)
 
+Enum values, sort keys, and filter value hints in the tool schemas mirror Linear's GraphQL schema introspection.
+
 ### Issues
 
 | Tool                     | Description                                                        |

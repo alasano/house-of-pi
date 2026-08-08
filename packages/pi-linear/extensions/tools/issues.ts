@@ -10,10 +10,13 @@ import {
 import {
   PaginationParams,
   paginationVariables,
-  FilterParam,
-  SortParam,
+  filterParam,
+  sortParam,
+  inputParam,
+  ISSUE_SORT_KEYS,
+  SlaDayCountTypeSchema,
+  nullable,
   TeamConvenienceParams,
-  RawInputParam,
 } from '../params';
 import { ISSUE_SELECTION } from '../selections';
 import type { LinearIssue, JsonObject, LinearConnection } from '../types';
@@ -31,6 +34,9 @@ import {
   renderLinearUnarchiveIssueCall,
   renderLinearUpdateIssueCall,
 } from '../renderers/issues';
+
+const ISSUE_FILTER_HINT =
+  'Closed sets: state.type (triage, backlog, unstarted, started, completed, canceled, duplicate); slaStatus (Breached, HighRisk, MediumRisk, LowRisk, Completed, Failed); addedToCyclePeriod (before, during, after); priority (0-4).';
 
 export function issueTools() {
   return [
@@ -57,8 +63,12 @@ export function issueTools() {
         ),
         ...TeamConvenienceParams,
         ...PaginationParams,
-        ...FilterParam,
-        ...SortParam,
+        filter: filterParam('IssueFilter', ISSUE_FILTER_HINT),
+        sort: sortParam(
+          'IssueSortInput',
+          ISSUE_SORT_KEYS,
+          'labelGroup requires a labelGroupId; rootIssue requires a nested sort object.',
+        ),
       }),
       renderCall: renderLinearIssueListCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -180,14 +190,30 @@ export function issueTools() {
         title: Type.Optional(Type.String({ description: 'Issue title.' })),
         description: Type.Optional(Type.String({ description: 'Issue description in markdown.' })),
         assigneeId: Type.Optional(Type.String({ description: 'IssueCreateInput.assigneeId' })),
-        completedAt: Type.Optional(Type.String({ description: 'IssueCreateInput.completedAt' })),
-        createAsUser: Type.Optional(Type.String({ description: 'IssueCreateInput.createAsUser' })),
-        createdAt: Type.Optional(Type.String({ description: 'IssueCreateInput.createdAt' })),
+        completedAt: Type.Optional(
+          Type.String({
+            description:
+              'IssueCreateInput.completedAt: ISO-8601 datetime in the past, after createdAt (for imports).',
+          }),
+        ),
+        createAsUser: Type.Optional(
+          Type.String({
+            description: 'IssueCreateInput.createAsUser (OAuth actor=app tokens only).',
+          }),
+        ),
+        createdAt: Type.Optional(
+          Type.String({
+            description: 'IssueCreateInput.createdAt: ISO-8601 datetime in the past (for imports).',
+          }),
+        ),
         cycleId: Type.Optional(Type.String({ description: 'IssueCreateInput.cycleId' })),
         delegateId: Type.Optional(Type.String({ description: 'IssueCreateInput.delegateId' })),
         descriptionData: Type.Optional(Type.Record(Type.String(), Type.Any())),
         displayIconUrl: Type.Optional(
-          Type.String({ description: 'IssueCreateInput.displayIconUrl' }),
+          Type.String({
+            description:
+              'IssueCreateInput.displayIconUrl (OAuth actor=app with createAsUser only).',
+          }),
         ),
         dueDate: Type.Optional(
           Type.String({ description: 'IssueCreateInput.dueDate (YYYY-MM-DD)' }),
@@ -207,10 +233,11 @@ export function issueTools() {
           }),
         ),
         priority: Type.Optional(
-          Type.Number({
+          Type.Integer({
             minimum: 0,
             maximum: 4,
-            description: 'IssueCreateInput.priority (0 none, 1 urgent, 2 high, 3 normal, 4 low).',
+            description:
+              'IssueCreateInput.priority (0 = No priority, 1 = Urgent, 2 = High, 3 = Medium, 4 = Low).',
           }),
         ),
         prioritySortOrder: Type.Optional(
@@ -224,10 +251,12 @@ export function issueTools() {
           Type.String({ description: 'IssueCreateInput.referenceCommentId' }),
         ),
         slaBreachesAt: Type.Optional(
-          Type.String({ description: 'IssueCreateInput.slaBreachesAt' }),
+          Type.String({ description: 'IssueCreateInput.slaBreachesAt (ISO-8601 datetime).' }),
         ),
-        slaStartedAt: Type.Optional(Type.String({ description: 'IssueCreateInput.slaStartedAt' })),
-        slaType: Type.Optional(Type.String({ description: 'IssueCreateInput.slaType' })),
+        slaStartedAt: Type.Optional(
+          Type.String({ description: 'IssueCreateInput.slaStartedAt (ISO-8601 datetime).' }),
+        ),
+        slaType: Type.Optional(SlaDayCountTypeSchema),
         sortOrder: Type.Optional(Type.Number({ description: 'IssueCreateInput.sortOrder' })),
         sourceCommentId: Type.Optional(
           Type.String({ description: 'IssueCreateInput.sourceCommentId' }),
@@ -250,7 +279,7 @@ export function issueTools() {
         useDefaultTemplate: Type.Optional(
           Type.Boolean({ description: 'IssueCreateInput.useDefaultTemplate' }),
         ),
-        ...RawInputParam,
+        input: inputParam('IssueCreateInput', 'Enum fields: slaType (all, onlyBusinessDays).'),
       }),
       renderCall: renderLinearCreateIssueCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -347,7 +376,7 @@ export function issueTools() {
       name: 'linear_update_issue',
       label: 'Linear Update Issue',
       description:
-        'Update a Linear issue by identifier (ENG-123) or issue id. Supports all IssueUpdateInput fields via top-level params and/or input object. Use clearDueDate=true (or dueDate=null in input) to clear due date.',
+        'Update a Linear issue by identifier (ENG-123) or issue id. Supports all IssueUpdateInput fields via top-level params and/or input object. Set dueDate=null to clear the due date.',
       parameters: Type.Object({
         issue: Type.String({
           description: 'Issue identifier (ENG-123) or issue id.',
@@ -355,21 +384,18 @@ export function issueTools() {
         title: Type.Optional(Type.String({ description: 'IssueUpdateInput.title' })),
         description: Type.Optional(Type.String({ description: 'IssueUpdateInput.description' })),
         priority: Type.Optional(
-          Type.Number({
+          Type.Integer({
             minimum: 0,
             maximum: 4,
-            description: 'IssueUpdateInput.priority (0 none, 1 urgent, 2 high, 3 normal, 4 low).',
+            description:
+              'IssueUpdateInput.priority (0 = No priority, 1 = Urgent, 2 = High, 3 = Medium, 4 = Low).',
           }),
         ),
         stateId: Type.Optional(Type.String({ description: 'IssueUpdateInput.stateId' })),
         assigneeId: Type.Optional(Type.String({ description: 'IssueUpdateInput.assigneeId' })),
-        dueDate: Type.Optional(
-          Type.String({
-            description: 'IssueUpdateInput.dueDate (YYYY-MM-DD). Empty string clears.',
-          }),
-        ),
-        clearDueDate: Type.Optional(
-          Type.Boolean({ description: 'If true, dueDate is set to null.' }),
+        dueDate: nullable(
+          Type.String(),
+          'IssueUpdateInput.dueDate (YYYY-MM-DD). Set to null to clear.',
         ),
         addedLabelIds: Type.Optional(
           Type.Array(Type.String(), {
@@ -405,13 +431,15 @@ export function issueTools() {
           }),
         ),
         slaBreachesAt: Type.Optional(
-          Type.String({ description: 'IssueUpdateInput.slaBreachesAt' }),
+          Type.String({ description: 'IssueUpdateInput.slaBreachesAt (ISO-8601 datetime).' }),
         ),
-        slaStartedAt: Type.Optional(Type.String({ description: 'IssueUpdateInput.slaStartedAt' })),
-        slaType: Type.Optional(Type.String({ description: 'IssueUpdateInput.slaType' })),
+        slaStartedAt: Type.Optional(
+          Type.String({ description: 'IssueUpdateInput.slaStartedAt (ISO-8601 datetime).' }),
+        ),
+        slaType: Type.Optional(SlaDayCountTypeSchema),
         snoozedById: Type.Optional(Type.String({ description: 'IssueUpdateInput.snoozedById' })),
         snoozedUntilAt: Type.Optional(
-          Type.String({ description: 'IssueUpdateInput.snoozedUntilAt' }),
+          Type.String({ description: 'IssueUpdateInput.snoozedUntilAt (ISO-8601 datetime).' }),
         ),
         sortOrder: Type.Optional(Type.Number({ description: 'IssueUpdateInput.sortOrder' })),
         subIssueSortOrder: Type.Optional(
@@ -423,21 +451,17 @@ export function issueTools() {
           }),
         ),
         teamId: Type.Optional(Type.String({ description: 'IssueUpdateInput.teamId' })),
-        trashed: Type.Optional(Type.Boolean({ description: 'IssueUpdateInput.trashed' })),
-        ...RawInputParam,
+        trashed: nullable(
+          Type.Boolean(),
+          'IssueUpdateInput.trashed. Set true to trash, null to restore.',
+        ),
+        input: inputParam('IssueUpdateInput', 'Enum fields: slaType (all, onlyBusinessDays).'),
       }),
       renderCall: renderLinearUpdateIssueCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
         return withLinearAuth(ctx, signal, async (apiKey) => {
           const issueId = await resolveIssueId(apiKey, params.issue, signal);
           const rawInput = asObject(params.input) || {};
-
-          const dueDate =
-            params.clearDueDate || params.dueDate === ''
-              ? null
-              : params.dueDate !== undefined
-                ? params.dueDate
-                : undefined;
 
           const convenienceInput = compactObject({
             addedLabelIds: params.addedLabelIds,
@@ -447,7 +471,7 @@ export function issueTools() {
             delegateId: params.delegateId,
             description: params.description,
             descriptionData: asObject(params.descriptionData),
-            dueDate,
+            dueDate: params.dueDate,
             estimate: params.estimate,
             labelIds: params.labelIds,
             lastAppliedTemplateId: params.lastAppliedTemplateId,
@@ -512,12 +536,17 @@ export function issueTools() {
     defineTool({
       name: 'linear_delete_issue',
       label: 'Linear Delete Issue',
-      description: 'Delete an issue by identifier (ENG-123) or id. Admins can permanently delete.',
+      description:
+        'Move an issue to trash by identifier (ENG-123) or id (restorable for ~30 days).',
       parameters: Type.Object({
         issue: Type.String({
           description: 'Issue identifier (ENG-123) or issue id.',
         }),
-        permanentlyDelete: Type.Optional(Type.Boolean()),
+        permanentlyDelete: Type.Optional(
+          Type.Boolean({
+            description: 'Permanently delete, skipping trash and the grace period (admin only).',
+          }),
+        ),
       }),
       renderCall: renderLinearDeleteIssueCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -638,7 +667,7 @@ export function issueTools() {
         includeComments: Type.Optional(Type.Boolean({ description: 'Search in comments too.' })),
         teamId: Type.Optional(Type.String({ description: 'Team UUID to boost results for.' })),
         ...PaginationParams,
-        ...FilterParam,
+        filter: filterParam('IssueFilter', ISSUE_FILTER_HINT),
       }),
       renderCall: renderLinearIssueSearchCall,
       async execute(_toolCallId, params, signal, _onUpdate, ctx) {

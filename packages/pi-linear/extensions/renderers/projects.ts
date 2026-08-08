@@ -80,12 +80,6 @@ function argsObject(context: { args?: unknown }): ToolArgs {
     : {};
 }
 
-function valueObject(value: unknown): ToolArgs | undefined {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as ToolArgs)
-    : undefined;
-}
-
 function humanizeEnum(value: string): string {
   const spaced = value
     .replace(/[_-]+/g, ' ')
@@ -303,10 +297,7 @@ function renderProjectCard(
 
 function isProjectUpdate(context: { args?: unknown }): boolean {
   const args = argsObject(context);
-  if (asString(args.projectId)) return true;
-
-  const input = valueObject(args.input);
-  return !!asString(input?.id);
+  return !!asString(args.projectId);
 }
 
 export function renderLinearProjectListCall(args: ToolArgs | undefined, theme: Theme): Text {

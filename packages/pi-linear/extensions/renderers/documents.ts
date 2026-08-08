@@ -199,6 +199,7 @@ export function renderLinearDocumentListCall(args: ToolArgs | undefined, theme: 
     ['orderBy', 'order'],
     ['includeArchived', 'archived'],
     ['filter', 'filter'],
+    ['sort', 'sort'],
   ]);
 }
 
