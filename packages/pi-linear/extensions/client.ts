@@ -2,7 +2,7 @@ import type { ExtensionContext } from '@earendil-works/pi-coding-agent';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { LinearGraphQLError, LinearIssue } from './types';
+import type { JsonObject, LinearGraphQLError, LinearIssue } from './types';
 import { asString, asObject } from './util';
 import { ISSUE_SELECTION } from './selections';
 
@@ -16,6 +16,56 @@ export type WorkspaceCredentials = {
   authPreference: AuthPreference;
   workspaces: Record<string, { apiKey: string }>;
 };
+
+export type AuthSource = 'project' | 'env' | 'workspace' | 'none';
+
+const PROJECT_CONFIG_FILENAME = 'pi-linear.json';
+
+export function getProjectConfigPath(cwd: string): string {
+  return path.join(cwd, '.pi', PROJECT_CONFIG_FILENAME);
+}
+
+async function readProjectConfig(cwd: string | undefined): Promise<JsonObject | undefined> {
+  if (!cwd) return undefined;
+  try {
+    const parsed = JSON.parse(await fs.readFile(getProjectConfigPath(cwd), 'utf8'));
+    return asObject(parsed);
+  } catch {
+    return undefined;
+  }
+}
+
+export async function readProjectWorkspace(cwd: string | undefined): Promise<string | undefined> {
+  const config = await readProjectConfig(cwd);
+  return config ? asString(config.workspace) : undefined;
+}
+
+export async function writeProjectWorkspace(cwd: string, name: string): Promise<string> {
+  const filePath = getProjectConfigPath(cwd);
+  const config = (await readProjectConfig(cwd)) ?? {};
+  config.workspace = name;
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  return filePath;
+}
+
+export async function clearProjectWorkspace(cwd: string): Promise<string> {
+  const filePath = getProjectConfigPath(cwd);
+  const config = await readProjectConfig(cwd);
+
+  if (config) {
+    delete config.workspace;
+    if (Object.keys(config).length === 0) {
+      await fs.rm(filePath, { force: true });
+      return filePath;
+    }
+    await fs.writeFile(filePath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+    return filePath;
+  }
+
+  await fs.rm(filePath, { force: true });
+  return filePath;
+}
 
 function normalizeAuthPreference(value: unknown): AuthPreference {
   return value === 'env' ? 'env' : 'workspace';
@@ -127,8 +177,20 @@ export function getActiveWorkspaceName(creds: WorkspaceCredentials): string | nu
 export async function resolveApiKey(
   ctx: ExtensionContext,
   options?: { promptIfMissing?: boolean },
-): Promise<{ apiKey?: string; source: 'env' | 'workspace' | 'none' }> {
+): Promise<{ apiKey?: string; source: AuthSource }> {
   const creds = await readCredentials();
+
+  const projectWorkspace = await readProjectWorkspace(ctx?.cwd);
+  if (projectWorkspace) {
+    const projectApiKey = creds.workspaces[projectWorkspace]?.apiKey;
+    if (!projectApiKey) {
+      throw new Error(
+        `Project config at ${getProjectConfigPath(ctx.cwd)} selects Linear workspace "${projectWorkspace}", but that workspace is not configured. Add it with /linear-auth add ${projectWorkspace}, or choose another with /linear-auth use <name>.`,
+      );
+    }
+    return { apiKey: projectApiKey, source: 'project' };
+  }
+
   const workspaceKey = getActiveApiKey(creds);
   const envApiKey = asString(process.env.LINEAR_API_KEY);
 

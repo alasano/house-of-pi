@@ -43,25 +43,39 @@ Use the `/linear-auth` command to manage workspaces and choose the auth preferen
 | `/linear-auth add <name>`            | Add a workspace with an API key (prompts for key)                    |
 | `/linear-auth remove <name>`         | Remove a workspace (shows selector if name omitted)                  |
 | `/linear-auth switch <name>`         | Switch active workspace and prefer stored workspaces                 |
+| `/linear-auth use <name>`            | Bind this project to a workspace via `.pi/pi-linear.json`            |
+| `/linear-auth unset`                 | Remove the project workspace binding                                 |
 | `/linear-auth prefer workspace\|env` | Choose whether stored workspaces or `LINEAR_API_KEY` are tried first |
 | `/linear-auth status`                | Show auth preference, active source, and configured workspaces       |
 | `/linear-auth`                       | Same as status                                                       |
 
-When you add your first workspace, it becomes active automatically. Adding a second workspace prompts you to switch. After a `/reload` with two or more workspaces configured, the agent gets a `linear_switch_workspace` tool and can switch between them when asked.
+When you add your first workspace, it becomes active automatically. Adding a second workspace prompts you to switch. After a `/reload` with two or more workspaces configured, the agent gets a `linear_switch_workspace` tool and can switch between them when asked. The tool takes an optional `scope`: `global` (default) changes the active workspace everywhere, while `project` binds the workspace to the current repository.
+
+### Project-level workspaces
+
+Bind a repository to a workspace so you never switch manually per project. `/linear-auth use <name>` writes the workspace name to `.pi/pi-linear.json` in the current working directory:
+
+```json
+{ "workspace": "my-team" }
+```
+
+Only the workspace name is stored (never an API key), so the file is safe to commit. Resolution is cwd-only — the extension reads `.pi/pi-linear.json` from `ctx.cwd`, with no ancestor search. A project workspace always wins over the global active workspace and over `LINEAR_API_KEY`, regardless of the `prefer` setting. If the config names a workspace that is not configured, every Linear tool fails with a clear error instead of silently using a different workspace. `/linear-auth unset` removes the binding (and deletes the file if it holds nothing else).
 
 Default auth resolution order (`/linear-auth prefer workspace`):
 
-1. Active stored workspace (if any workspaces are configured)
-2. `LINEAR_API_KEY` environment variable (fallback when no workspace is active)
-3. Interactive prompt (asks you to set up a key)
+1. Project workspace from `.pi/pi-linear.json` (if present and configured)
+2. Active stored workspace (if any workspaces are configured)
+3. `LINEAR_API_KEY` environment variable (fallback when no workspace is active)
+4. Interactive prompt (asks you to set up a key)
 
 Environment auth resolution order (`/linear-auth prefer env`):
 
-1. `LINEAR_API_KEY` environment variable
-2. Active stored workspace (fallback when `LINEAR_API_KEY` is not set)
-3. Interactive prompt (asks you to set up a key)
+1. Project workspace from `.pi/pi-linear.json` (if present and configured)
+2. `LINEAR_API_KEY` environment variable
+3. Active stored workspace (fallback when `LINEAR_API_KEY` is not set)
+4. Interactive prompt (asks you to set up a key)
 
-Credentials and auth preference are stored at `~/.pi/agent/extensions/linear/credentials.json`.
+Credentials and auth preference are stored at `~/.pi/agent/extensions/linear/credentials.json`; the project workspace lives at `<cwd>/.pi/pi-linear.json`.
 
 ## Tool settings
 
