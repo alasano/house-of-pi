@@ -59,8 +59,12 @@ type ExecutableTool = {
   ) => Promise<unknown>;
 };
 
-export function executeTool(tool: unknown, params: Record<string, unknown>): Promise<unknown> {
-  return (tool as ExecutableTool).execute('tool-call-1', params, undefined, undefined, {});
+export function executeTool(
+  tool: unknown,
+  params: Record<string, unknown>,
+  ctx: unknown = {},
+): Promise<unknown> {
+  return (tool as ExecutableTool).execute('tool-call-1', params, undefined, undefined, ctx);
 }
 
 export function agentText(result: unknown): string {

@@ -17,6 +17,8 @@ import {
 
 type WorkspaceSwitchResultDetails = {
   active?: string | null;
+  scope?: string;
+  configPath?: string;
 };
 
 function workspaceSwitchDetails(result: AgentToolResult<any>): WorkspaceSwitchResultDetails {
@@ -24,7 +26,10 @@ function workspaceSwitchDetails(result: AgentToolResult<any>): WorkspaceSwitchRe
 }
 
 export function renderLinearSwitchWorkspaceCall(args: ToolArgs | undefined, theme: Theme): Text {
-  return renderLinearToolCall('linear_switch_workspace', args, theme, [['name', 'name']]);
+  return renderLinearToolCall('linear_switch_workspace', args, theme, [
+    ['name', 'name'],
+    ['scope', 'scope'],
+  ]);
 }
 
 export function renderLinearSwitchWorkspaceResult(
@@ -38,9 +43,7 @@ export function renderLinearSwitchWorkspaceResult(
   if (context.isError) return renderLinearErrorResult(result, theme);
 
   const active = asString(workspaceSwitchDetails(result).active) ?? 'unknown';
-  return new Text(
-    `\n${theme.fg('success', `✓ Active Linear workspace: ${active}`)}\n\n${jsonHint()}`,
-    0,
-    0,
-  );
+  const scope = asString(workspaceSwitchDetails(result).scope);
+  const label = scope === 'project' ? 'Project Linear workspace' : 'Active Linear workspace';
+  return new Text(`\n${theme.fg('success', `✓ ${label}: ${active}`)}\n\n${jsonHint()}`, 0, 0);
 }

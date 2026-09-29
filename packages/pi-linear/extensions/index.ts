@@ -8,6 +8,11 @@ import {
   listWorkspaceNames,
   getActiveWorkspaceName,
   resolveApiKey,
+  readProjectWorkspace,
+  writeProjectWorkspace,
+  clearProjectWorkspace,
+  getProjectConfigPath,
+  type AuthSource,
 } from './client';
 import { asString } from './util';
 import { teamTools } from './tools/teams';
@@ -53,7 +58,7 @@ export function allLinearTools(creds: WorkspaceCredentials) {
 export default async function linearExtension(pi: ExtensionAPI) {
   pi.registerCommand('linear-auth', {
     description:
-      'Manage Linear workspace auth (usage: /linear-auth [add|remove|switch|prefer|status])',
+      'Manage Linear workspace auth (usage: /linear-auth [add|remove|switch|use|unset|prefer|status])',
     handler: async (args, ctx) => {
       const parts = args.trim().split(/\s+/);
       const subcommand = parts[0]?.toLowerCase() || '';
@@ -175,6 +180,45 @@ export default async function linearExtension(pi: ExtensionAPI) {
           return;
         }
 
+        case 'use': {
+          const creds = await readCredentials();
+          const names = listWorkspaceNames(creds);
+          if (names.length === 0) {
+            ctx.ui.notify(
+              'No workspaces configured. Add one with /linear-auth add <name>.',
+              'warning',
+            );
+            return;
+          }
+
+          const rawSelection =
+            asString(name) ||
+            (await ctx.ui.select(
+              'Select workspace for this project',
+              names.map((n) => (n === creds.activeWorkspace ? `${n} (active)` : n)),
+            ));
+          const workspaceName = rawSelection?.replace(/ \(active\)$/, '');
+          if (!workspaceName) {
+            ctx.ui.notify('No workspace selected', 'warning');
+            return;
+          }
+
+          if (!creds.workspaces[workspaceName]) {
+            ctx.ui.notify(`Workspace "${workspaceName}" not found`, 'warning');
+            return;
+          }
+
+          const filePath = await writeProjectWorkspace(ctx.cwd, workspaceName);
+          ctx.ui.notify(`Project workspace: ${workspaceName}\nConfig: ${filePath}`, 'info');
+          return;
+        }
+
+        case 'unset': {
+          const filePath = await clearProjectWorkspace(ctx.cwd);
+          ctx.ui.notify(`Cleared project workspace override.\nConfig: ${filePath}`, 'info');
+          return;
+        }
+
         case 'prefer': {
           const preference = name.toLowerCase();
           if (preference !== 'workspace' && preference !== 'env') {
@@ -208,15 +252,24 @@ export default async function linearExtension(pi: ExtensionAPI) {
         case 'status':
         case '': {
           const creds = await readCredentials();
-          const { source } = await resolveApiKey(ctx, {
-            promptIfMissing: false,
-          });
           const names = listWorkspaceNames(creds);
           const active = getActiveWorkspaceName(creds);
           const envIsSet = Boolean(asString(process.env.LINEAR_API_KEY));
+          const projectConfigPath = getProjectConfigPath(ctx.cwd);
+          const projectWorkspace = await readProjectWorkspace(ctx.cwd);
+
+          let source: AuthSource = 'none';
+          let projectError: string | undefined;
+          try {
+            ({ source } = await resolveApiKey(ctx, { promptIfMissing: false }));
+          } catch (error) {
+            projectError = error instanceof Error ? error.message : String(error);
+          }
 
           let sourceLabel: string;
-          if (source === 'workspace') {
+          if (source === 'project') {
+            sourceLabel = `project: ${projectWorkspace}`;
+          } else if (source === 'workspace') {
             sourceLabel = `workspace: ${active}`;
           } else if (source === 'env') {
             sourceLabel = 'env: LINEAR_API_KEY';
@@ -224,7 +277,19 @@ export default async function linearExtension(pi: ExtensionAPI) {
             sourceLabel = 'none';
           }
 
-          const lines = [`Auth preference: ${creds.authPreference}`, `Auth source: ${sourceLabel}`];
+          const lines = [
+            `Auth preference: ${creds.authPreference}`,
+            `Auth source: ${sourceLabel}`,
+            `Project config: ${projectWorkspace ?? 'none'} (${projectConfigPath})`,
+          ];
+
+          if (projectWorkspace) {
+            lines.push('Project config overrides the global active workspace and LINEAR_API_KEY.');
+          }
+          if (projectError) {
+            lines.push(`Warning: ${projectError}`);
+          }
+
           if (names.length > 0) {
             lines.push(
               `Workspaces: ${names.map((n) => (n === active ? `${n} (active)` : n)).join(', ')}`,
@@ -233,34 +298,39 @@ export default async function linearExtension(pi: ExtensionAPI) {
             lines.push('No workspaces configured');
           }
 
-          if (creds.authPreference === 'workspace' && envIsSet) {
-            if (source === 'workspace') {
-              lines.push(
-                'LINEAR_API_KEY is set but not active. Run /linear-auth prefer env to use it.',
-              );
-            } else if (source === 'env') {
-              lines.push(
-                'No active workspace is configured, so LINEAR_API_KEY is being used as fallback.',
-              );
-            }
-          } else if (creds.authPreference === 'env' && names.length > 0) {
-            if (source === 'env') {
-              lines.push(
-                'Stored workspaces are available but not active. Run /linear-auth prefer workspace or /linear-auth switch <name> to use one.',
-              );
-            } else if (source === 'workspace') {
-              lines.push(
-                'LINEAR_API_KEY is not set, so the active workspace is being used as fallback.',
-              );
+          if (!projectError && source !== 'project') {
+            if (creds.authPreference === 'workspace' && envIsSet) {
+              if (source === 'workspace') {
+                lines.push(
+                  'LINEAR_API_KEY is set but not active. Run /linear-auth prefer env to use it.',
+                );
+              } else if (source === 'env') {
+                lines.push(
+                  'No active workspace is configured, so LINEAR_API_KEY is being used as fallback.',
+                );
+              }
+            } else if (creds.authPreference === 'env' && names.length > 0) {
+              if (source === 'env') {
+                lines.push(
+                  'Stored workspaces are available but not active. Run /linear-auth prefer workspace or /linear-auth switch <name> to use one.',
+                );
+              } else if (source === 'workspace') {
+                lines.push(
+                  'LINEAR_API_KEY is not set, so the active workspace is being used as fallback.',
+                );
+              }
             }
           }
 
-          ctx.ui.notify(lines.join('\n'), source === 'none' ? 'warning' : 'info');
+          ctx.ui.notify(lines.join('\n'), source === 'none' || projectError ? 'warning' : 'info');
           return;
         }
 
         default: {
-          ctx.ui.notify('Usage: /linear-auth [add|remove|switch|prefer|status]', 'warning');
+          ctx.ui.notify(
+            'Usage: /linear-auth [add|remove|switch|use|unset|prefer|status]',
+            'warning',
+          );
         }
       }
     },
