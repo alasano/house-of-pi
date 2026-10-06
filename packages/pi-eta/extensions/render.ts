@@ -94,6 +94,10 @@ export function renderEtaCall(toolName: string, args: EtaToolArgs, theme: Theme)
     return new Text(text, 0, 0);
   }
 
+  if (toolName === 'eta_update') {
+    return new Text(theme.fg('success', theme.bold('ETA updated')), 0, 0);
+  }
+
   if (toolName === 'eta_finish') {
     const outcomeLabels: Record<string, string> = {
       completed: 'ETA completed',
@@ -284,6 +288,17 @@ export function renderEtaResult(
       `${theme.fg('dim', 'Started:')} ${formatTimestamp(details.startedAt)}`,
     ];
     return new Text(lines.join('\n'), 0, 0);
+  }
+
+  if (details.kind === 'update') {
+    return new Text(
+      [
+        ...previewLines(details.preview, theme, showVerbose),
+        `${theme.fg('dim', 'Updated remaining work:')} ${formatTimestamp(details.updatedAt)}`,
+      ].join('\n'),
+      0,
+      0,
+    );
   }
 
   const wall =

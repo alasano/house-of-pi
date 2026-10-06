@@ -22,6 +22,7 @@ pi install npm:pi-eta
 | ------------ | ------------------------------------------------------------------------ |
 | `eta_check`  | Privately show the user a calibrated estimate without starting a timer   |
 | `eta_start`  | Start a wall-clock ETA timer from the agent's own estimate               |
+| `eta_update` | Refresh the countdown with an honest estimate of work remaining          |
 | `eta_finish` | Close an ETA timer as completed, abandoned, scope-changed, or superseded |
 
 The agent only receives confirmation text. Calibrated estimates, multipliers, confidence, and spread are rendered to the user through tool UI details.
@@ -45,6 +46,25 @@ The agent only receives confirmation text. Calibrated estimates, multipliers, co
   <br />
   <sub><em>eta_finish</em></sub>
 </p>
+
+## Live countdown
+
+For substantial tasks, usually work expected to take more than about a minute, the agent is instructed to estimate the whole task before starting. The estimate includes discovery, validation, delegated agents, and expected waiting. Parallel branches contribute their longest critical path; sequential work and integration add to it.
+
+A compact widget above the input editor refreshes every second, with a short ETA in the footer as a fallback. It leaves Pi's working indicator available for other extensions such as `elapsed`:
+
+```text
+ETA 2m12s remaining · Implement and verify
+Subagents (latest estimates): Research ~2m; Tests ~1m
+```
+
+The countdown uses the calibrated range when history is available, otherwise the agent's raw range. At halfway to the range's early bound, or after two minutes for longer estimates, a hidden reminder asks the agent to reassess the remaining work at its next normal model call. Updates restart the countdown from the new remaining estimate, and schedule the next reminder. Reminders are deduplicated between model calls; an unanswered reminder can repeat after two minutes. Substantial progress or delegation changes also call for a fresh estimate.
+
+`eta_update` records a separate update event. The initial `eta_start` estimate and the task's total elapsed duration remain the calibration sample; updates never replace that baseline. Both tools accept an optional `delegatedTasks` list of `{ taskSummary, estimateMinutes }` entries for the widget. These are the delegated agents' latest raw remaining estimates, already included in the parent's total. They are a snapshot rather than independently running child timers. An update with `delegatedTasks: []` clears completed subagents; omitting the list preserves the previous breakdown.
+
+When [pi-subagents](https://www.npmjs.com/package/pi-subagents) emits its public background start/completion events, the extension keeps the parent's countdown running while its background agents work between parent turns. Completion requests a fresh assessment at the next ordinary model call. Session identity is checked so another session's children do not affect this countdown. This event integration is optional: child processes do not share the parent's extension runtime, and child ETA estimates are reported by agents through the parent's tools rather than read from private subagent files.
+
+The clock never starts model turns or interrupts an ongoing tool or provider request. If work runs past the estimate before a new tool opportunity, the widget honestly shows `ETA exceeded · update needed`; it never goes negative or invents extra time. A parent turn ending without tracked background work pauses the UI clock and requests a new estimate on resume. Finishing, resetting, switching sessions, reloading, or shutting down clears its interval and widget.
 
 ## Commands
 
@@ -111,6 +131,8 @@ Calibration policy is configured directly in `settings.json`; run `/reload` afte
 - `abandoned`, `scope_changed`, and `superseded` close the timer but are excluded from calibration.
 - Changing the model or thinking level while a task is open records one durable marker. Such mixed-profile tasks stay in history and in the overlay but train nothing.
 - One ETA task may be open per Pi session.
+- `eta_update` can only update an open task in the current session.
+- Live countdown updates use ordinary agent turns; long blocking calls may delay reassessment.
 - Agents are instructed not to infer or restate hidden calibrated values.
 
 ### Known limitation

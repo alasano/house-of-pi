@@ -7,11 +7,16 @@ import type { EtaSettingsStore } from '../settings';
 import type { EtaFinishEvent, EtaToolDetails } from '../types';
 import { renderEtaCall, renderEtaResult } from '../render';
 import { actualWallMinutes, baseEtaEvent, nowIso } from '../util';
-import { agentHiddenCalibrationMessage, buildErrorDetails, sessionMetadata } from './helpers';
+import {
+  agentHiddenCalibrationMessage,
+  buildErrorDetails,
+  sessionMetadata,
+  type EtaTaskChanged,
+} from './helpers';
 
 export type EtaFinishParams = Static<typeof EtaFinishParamsSchema>;
 
-export function createEtaFinishTool(settings: EtaSettingsStore) {
+export function createEtaFinishTool(settings: EtaSettingsStore, onTaskChanged?: EtaTaskChanged) {
   return defineTool<typeof EtaFinishParamsSchema, EtaToolDetails>({
     name: 'eta_finish',
     label: 'ETA Finish',
@@ -112,7 +117,10 @@ export function createEtaFinishTool(settings: EtaSettingsStore) {
 
         // Finishing another session's task by explicit id must not clear this session's
         // own open-task status.
-        if (closedThisSessionTask) ctx.ui.setStatus('pi-eta', undefined);
+        if (closedThisSessionTask) {
+          if (onTaskChanged) onTaskChanged(ctx, undefined);
+          else ctx.ui.setStatus('pi-eta', undefined);
+        }
 
         return {
           content: [

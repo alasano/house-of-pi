@@ -59,7 +59,8 @@ export function normalizeEstimateRange(params: {
   }
 
   if (single !== undefined) {
-    if (single <= 0) throw new Error('estimateMinutes must be greater than zero.');
+    if (!Number.isFinite(single) || single <= 0)
+      throw new Error('estimateMinutes must be finite and greater than zero.');
     return { lowMinutes: single, highMinutes: single };
   }
 
@@ -67,8 +68,8 @@ export function normalizeEstimateRange(params: {
     throw new Error('Provide estimateMinutes or both estimateLowMinutes and estimateHighMinutes.');
   }
 
-  if (low <= 0 || high <= 0) {
-    throw new Error('Estimate range values must be greater than zero.');
+  if (!Number.isFinite(low) || !Number.isFinite(high) || low <= 0 || high <= 0) {
+    throw new Error('Estimate range values must be finite and greater than zero.');
   }
 
   if (low > high) {
