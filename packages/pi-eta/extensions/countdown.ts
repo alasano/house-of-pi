@@ -2,6 +2,7 @@ import type { ExtensionContext } from '@earendil-works/pi-coding-agent';
 import { truncateToWidth } from '@earendil-works/pi-tui';
 import type { EstimateRange, EtaTaskRecord } from './types';
 import { formatDuration, formatRange } from './util';
+import type { EtaBootstrapStatus } from './bootstrap';
 
 const REFRESH_INTERVAL_MS = 120_000;
 const TICK_INTERVAL_MS = 1_000;
@@ -41,12 +42,13 @@ function cleanSummary(summary: string): string {
     .trim();
 }
 
-export function countdownLabel(record: EtaTaskRecord, now: number): string {
+export function countdownLabel(record: EtaTaskRecord, now: number, updateAvailable = true): string {
   const remaining = remainingEtaRange(record, now);
-  if (remaining.highMinutes === 0) return 'ETA exceeded · update needed';
+  if (remaining.highMinutes === 0)
+    return `ETA exceeded · ${updateAvailable ? 'update needed' : 'update unavailable'}`;
   if (remaining.lowMinutes === 0)
-    return `ETA up to ${formatDuration(remaining.highMinutes)} · update due`;
-  return `ETA ${formatRange(remaining)} remaining`;
+    return `ETA up to ${formatDuration(remaining.highMinutes)} · ${updateAvailable ? 'update due' : 'update unavailable'}`;
+  return `ETA ${formatRange(remaining)} remaining${updateAvailable ? '' : ' · update unavailable'}`;
 }
 
 /** The clock only paints UI. Reminders are consumed by the next ordinary LLM call. */
@@ -60,6 +62,21 @@ export class EtaCountdown {
   private nextReminderAt = Infinity;
   private refreshPending = false;
   private backgroundRuns = new Set<string>();
+  private bootstrapStatus: EtaBootstrapStatus | undefined;
+  private updateAvailable = true;
+
+  setUpdateAvailable(available: boolean): void {
+    this.updateAvailable = available;
+    this.paint();
+  }
+
+  setBootstrapStatus(ctx: ExtensionContext, status: EtaBootstrapStatus | undefined): void {
+    if (this.sessionId && this.sessionId !== ctx.sessionManager.getSessionId()) this.stop();
+    this.ctx = ctx;
+    this.sessionId = ctx.sessionManager.getSessionId();
+    this.bootstrapStatus = status;
+    this.paint();
+  }
 
   sync(ctx: ExtensionContext, record: EtaTaskRecord | undefined): void {
     if (record && record.sessionId !== ctx.sessionManager.getSessionId()) return;
@@ -73,7 +90,7 @@ export class EtaCountdown {
       this.revision = undefined;
       this.backgroundRuns.clear();
       this.clearTimer();
-      this.clearUI();
+      this.paint();
       return;
     }
     const revision = `${record.taskId}:${record.latestUpdate?.eventId ?? record.startedAt}`;
@@ -83,6 +100,7 @@ export class EtaCountdown {
       this.revision = revision;
     }
     this.record = record;
+    this.bootstrapStatus = undefined;
     this.paint();
     this.startTimer();
   }
@@ -122,12 +140,16 @@ export class EtaCountdown {
     this.paint();
   }
 
-  takeReminder(): string | undefined {
-    if (!this.record || !this.active || Date.now() < this.nextReminderAt) return undefined;
+  takeReminder(finishAvailable = true): string | undefined {
+    if (!this.record || !this.active || !this.updateAvailable || Date.now() < this.nextReminderAt)
+      return undefined;
     this.nextReminderAt = Date.now() + REFRESH_INTERVAL_MS;
     this.refreshPending = true;
     this.paint();
-    return `Pi ETA refresh for task ${this.record.taskId}: before continuing substantial work, call eta_update with a fresh honest estimate of the work remaining from now, including outstanding subagent waiting, sequential dependencies, and integration. Parallel work uses the longest critical path. Update delegatedTasks with still-pending work, or [] when all subagents are done. If the promised task has ended, call eta_finish instead. Do not infer or repeat hidden calibrated values.`;
+    const finishInstruction = finishAvailable
+      ? 'If the promised task has ended, call eta_finish instead.'
+      : 'If the promised task has ended, do not invent more remaining work to extend its countdown.';
+    return `Pi ETA refresh for task ${this.record.taskId}: before continuing substantial work, call eta_update with a fresh honest estimate of the work remaining from now, including outstanding subagent waiting, sequential dependencies, and integration. Parallel work uses the longest critical path. Update delegatedTasks with still-pending work, or [] when all subagents are done. ${finishInstruction} Do not infer or repeat hidden calibrated values.`;
   }
 
   stop(): void {
@@ -141,6 +163,8 @@ export class EtaCountdown {
     this.nextReminderAt = Infinity;
     this.refreshPending = false;
     this.backgroundRuns.clear();
+    this.bootstrapStatus = undefined;
+    this.updateAvailable = true;
   }
 
   private startTimer(): void {
@@ -163,27 +187,44 @@ export class EtaCountdown {
   private clearUI(): void {
     if (!this.ctx?.hasUI) return;
     this.ctx.ui.setStatus('pi-eta', undefined);
-    this.ctx.ui.setWidget('pi-eta', undefined);
+    if (this.ctx.mode === 'tui') this.ctx.ui.setWidget('pi-eta', undefined);
   }
 
   private paint(): void {
-    if (!this.ctx?.hasUI || !this.record) return;
+    if (!this.ctx?.hasUI) return;
     if (this.ctx.sessionManager.getSessionId() !== this.sessionId) {
       this.stop();
       return;
     }
     const { ui } = this.ctx;
+    if (!this.record) {
+      if (!this.bootstrapStatus) {
+        this.clearUI();
+        return;
+      }
+      const labels: Record<EtaBootstrapStatus, string> = {
+        pending: 'ETA pending · awaiting an agent estimate',
+        unavailable: 'ETA unavailable · eta_start is inactive',
+        missing: 'ETA no estimate supplied',
+      };
+      const text = ui.theme.fg('warning', labels[this.bootstrapStatus]);
+      this.setDisplay(text, [text]);
+      return;
+    }
     const running = this.active || this.backgroundRuns.size > 0;
     const now = Date.now();
-    const label = running ? countdownLabel(this.record, now) : 'ETA paused · re-estimate on resume';
-    const warning = !running || now >= nextEtaRefreshAt(this.record);
-    const suffix = this.refreshPending
-      ? ' · refresh requested'
-      : this.backgroundRuns.size > 0
-        ? ' · subagents running'
-        : running && warning && !label.includes('update')
-          ? ' · update due'
-          : '';
+    const label = running
+      ? countdownLabel(this.record, now, this.updateAvailable)
+      : 'ETA paused · re-estimate on resume';
+    const warning = !running || !this.updateAvailable || now >= nextEtaRefreshAt(this.record);
+    const suffix =
+      this.refreshPending && this.updateAvailable
+        ? ' · refresh requested'
+        : this.backgroundRuns.size > 0
+          ? ' · subagents running'
+          : running && warning && !label.includes('update')
+            ? ' · update due'
+            : '';
     const lines = [
       `${ui.theme.fg(warning ? 'warning' : 'accent', label + suffix)} · ${ui.theme.fg('muted', cleanSummary(this.record.taskSummary))}`,
     ];
@@ -199,14 +240,26 @@ export class EtaCountdown {
         ui.theme.fg('dim', `Subagents (latest estimates): ${summaries.join('; ')}${more}`),
       );
     }
-    ui.setStatus('pi-eta', ui.theme.fg(warning ? 'warning' : 'accent', label));
-    ui.setWidget(
+    this.setDisplay(ui.theme.fg(warning ? 'warning' : 'accent', label), lines);
+  }
+
+  private setDisplay(status: string, lines: string[]): void {
+    if (!this.ctx?.hasUI) return;
+    if (this.ctx.mode === 'rpc') {
+      // RPC ignores component factories, so expose exactly one supported status surface.
+      this.ctx.ui.setStatus('pi-eta', status);
+      return;
+    }
+    if (this.ctx.mode !== 'tui') return;
+    // Clear the older footer display, including any status left over after a reload.
+    this.ctx.ui.setStatus('pi-eta', undefined);
+    this.ctx.ui.setWidget(
       'pi-eta',
       () => ({
         render: (width) => lines.map((line) => truncateToWidth(line, width)),
         invalidate() {},
       }),
-      { placement: 'aboveEditor' },
+      { placement: 'belowEditor' },
     );
   }
 }

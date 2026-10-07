@@ -26,7 +26,7 @@ function task(options: Partial<EtaTaskRecord> = {}): EtaTaskRecord {
   };
 }
 
-function context(sessionId = 'session', hasUI = true) {
+function context(sessionId = 'session', hasUI = true, mode: ExtensionContext['mode'] = 'tui') {
   const ui = {
     setStatus: vi.fn(),
     setWidget: vi.fn(),
@@ -34,13 +34,18 @@ function context(sessionId = 'session', hasUI = true) {
   };
   const ctx = {
     hasUI,
+    mode,
     ui,
     sessionManager: {
       getSessionId: () => sessionId,
       getSessionFile: () => `/tmp/${sessionId}.jsonl`,
     },
   } as unknown as ExtensionContext;
-  return { ctx, ui };
+  const widgetText = () => {
+    const factory = ui.setWidget.mock.calls.at(-1)?.[1];
+    return typeof factory === 'function' ? (factory().render(1000) as string[]).join('\n') : '';
+  };
+  return { ctx, ui, widgetText };
 }
 
 describe('live ETA countdown', () => {
@@ -52,7 +57,7 @@ describe('live ETA countdown', () => {
 
   it('requests updates periodically before the first deadline and deduplicates normal turns', () => {
     const clock = new EtaCountdown();
-    const { ctx, ui } = context();
+    const { ctx, ui, widgetText } = context();
     clock.resume();
     clock.sync(ctx, task());
     expect(nextEtaRefreshAt(task())).toBe(start + 120_000);
@@ -68,7 +73,8 @@ describe('live ETA countdown', () => {
     // Reloading the durable record at each context call cannot re-arm the same reminder.
     clock.sync(ctx, task());
     expect(clock.takeReminder()).toBeUndefined();
-    expect(ui.setStatus).toHaveBeenLastCalledWith('pi-eta', 'ETA 8m – 10m remaining');
+    expect(widgetText()).toContain('ETA 8m – 10m remaining');
+    expect(ui.setStatus.mock.calls.every((call) => call[1] === undefined)).toBe(true);
     vi.advanceTimersByTime(120_000);
     expect(clock.takeReminder()).toContain('eta_update');
     clock.stop();
@@ -89,7 +95,7 @@ describe('live ETA countdown', () => {
 
   it('uses a fresh remaining estimate without restarting the original task duration', () => {
     const clock = new EtaCountdown();
-    const { ctx, ui } = context();
+    const { ctx, ui, widgetText } = context();
     clock.resume();
     clock.sync(ctx, task());
     vi.advanceTimersByTime(120_000);
@@ -110,7 +116,8 @@ describe('live ETA countdown', () => {
         },
       }),
     );
-    expect(ui.setStatus).toHaveBeenLastCalledWith('pi-eta', 'ETA 1m remaining');
+    expect(widgetText()).toContain('ETA 1m remaining');
+    expect(ui.setWidget.mock.calls.at(-1)?.[2]).toEqual({ placement: 'belowEditor' });
     expect(clock.takeReminder()).toBeUndefined();
     vi.advanceTimersByTime(30_000);
     expect(clock.takeReminder()).toContain('eta_update');
@@ -119,12 +126,12 @@ describe('live ETA countdown', () => {
 
   it('pauses when the agent stops, requests a new estimate on resume, and clears on finish', () => {
     const clock = new EtaCountdown();
-    const { ctx, ui } = context();
+    const { ctx, ui, widgetText } = context();
     clock.resume();
     clock.sync(ctx, task());
     clock.pause();
     expect(vi.getTimerCount()).toBe(0);
-    expect(ui.setStatus).toHaveBeenLastCalledWith('pi-eta', 'ETA paused · re-estimate on resume');
+    expect(widgetText()).toContain('ETA paused · re-estimate on resume');
     vi.advanceTimersByTime(3_600_000);
     expect(clock.takeReminder()).toBeUndefined();
     clock.resume();
@@ -210,5 +217,47 @@ describe('live ETA countdown', () => {
         .every((line: string) => visibleWidth(line) <= 20),
     ).toBe(true);
     clock.stop();
+  });
+
+  it('shows every TUI state only in the detailed widget below the editor, clearing any old footer status', () => {
+    const clock = new EtaCountdown();
+    const { ctx, ui, widgetText } = context();
+    for (const status of ['pending', 'unavailable', 'missing'] as const) {
+      clock.setBootstrapStatus(ctx, status);
+      expect(widgetText()).toContain('ETA');
+      expect(vi.getTimerCount()).toBe(0);
+    }
+    clock.resume();
+    clock.sync(ctx, task({ delegatedTasks: [{ taskSummary: 'Research', estimateMinutes: 2 }] }));
+    expect(widgetText()).toContain('Implement and verify');
+    expect(widgetText()).toContain('Subagents (latest estimates): Research ~2m');
+    clock.setUpdateAvailable(false);
+    expect(widgetText()).toContain('update unavailable');
+    expect(ui.setStatus.mock.calls.every((call) => call[1] === undefined)).toBe(true);
+    const widgets = ui.setWidget.mock.calls.filter((call) => call[1] !== undefined);
+    expect(widgets.every((call) => call[2]?.placement === 'belowEditor')).toBe(true);
+    clock.stop();
+    expect(ui.setWidget).toHaveBeenLastCalledWith('pi-eta', undefined);
+    expect(ui.setStatus).toHaveBeenLastCalledWith('pi-eta', undefined);
+  });
+
+  it('uses only the supported status fallback in RPC, without a component widget', () => {
+    const clock = new EtaCountdown();
+    const { ctx, ui } = context('session', true, 'rpc');
+    clock.setBootstrapStatus(ctx, 'pending');
+    expect(ui.setStatus).toHaveBeenLastCalledWith(
+      'pi-eta',
+      'ETA pending · awaiting an agent estimate',
+    );
+    clock.resume();
+    clock.sync(ctx, task());
+    expect(ui.setStatus).toHaveBeenLastCalledWith('pi-eta', 'ETA 10m – 12m remaining');
+    vi.advanceTimersByTime(1000);
+    expect(ui.setStatus).toHaveBeenLastCalledWith('pi-eta', 'ETA 9m59s – 11m59s remaining');
+    expect(ui.setWidget).not.toHaveBeenCalled();
+    clock.stop();
+    expect(ui.setWidget).not.toHaveBeenCalled();
+    expect(ui.setStatus).toHaveBeenLastCalledWith('pi-eta', undefined);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

@@ -51,7 +51,13 @@ The agent only receives confirmation text. Calibrated estimates, multipliers, co
 
 For substantial tasks, usually work expected to take more than about a minute, the agent is instructed to estimate the whole task before starting. The estimate includes discovery, validation, delegated agents, and expected waiting. Parallel branches contribute their longest critical path; sequential work and integration add to it.
 
-A compact widget above the input editor refreshes every second, with a short ETA in the footer as a fallback. It leaves Pi's working indicator available for other extensions such as `elapsed`:
+Each user-initiated run also receives a hidden start reminder at its first normal model call when no ETA task is already open. It includes a valid `eta_start` JSON example and permits trivial immediate tasks to skip estimation. If the agent starts business tools without an estimate, the next normal model call gets one final reminder to estimate only the work still remaining, without repeating completed work. These reminders do not start extra model calls, block tools, or replace the original task. An existing ETA task uses remaining-work update reminders instead.
+
+Before the agent supplies an estimate, the widget shows `ETA pending · awaiting an agent estimate`, with no invented duration. If `eta_start` is inactive, it shows `ETA unavailable · eta_start is inactive`, and no start instructions are injected. If both reminders go unanswered, the next model call shows `ETA no estimate supplied`. A valid start replaces the pending state with the real countdown. Successful timing, finishing, and resetting close the start-reminder state for that run; later context calls do not restart it. Run end, session replacement, and shutdown clear the pending UI. Reminders help models notice estimation, but cannot guarantee that every model will call the tool.
+
+Timing instructions mention only the ETA tools active in the current run. An already-open countdown continues to show real remaining time if `eta_update` is disabled, with `update unavailable` in the widget. It does not ask for an unavailable update or finish tool. Re-enabling updates preserves the pending refresh request rather than silently postponing it.
+
+A compact, detailed widget below the input editor refreshes every second. In the terminal UI this is the single live ETA display: the footer status is cleared so the time is not repeated. It leaves Pi's working indicator available for other extensions such as `elapsed`. RPC mode does not support component widgets, so it uses a single status fallback instead:
 
 ```text
 ETA 2m12s remaining · Implement and verify

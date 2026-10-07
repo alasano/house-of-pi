@@ -82,6 +82,7 @@ export function createEtaStartTool(settings: EtaSettingsStore, onTaskChanged?: E
         if (details.kind === 'error') {
           return {
             content: [{ type: 'text', text: `ETA start failed: ${details.message}` }],
+            isError: true,
             details,
           };
         }
@@ -91,7 +92,9 @@ export function createEtaStartTool(settings: EtaSettingsStore, onTaskChanged?: E
         }
 
         if (onTaskChanged) onTaskChanged(ctx, startedRecord);
-        else ctx.ui.setStatus('pi-eta', ctx.ui.theme.fg('accent', `ETA ${details.taskId}`));
+        else if (ctx.mode === 'rpc')
+          ctx.ui.setStatus('pi-eta', ctx.ui.theme.fg('accent', `ETA ${details.taskId}`));
+        else if (ctx.mode === 'tui') ctx.ui.setStatus('pi-eta', undefined);
 
         return {
           content: [
@@ -103,6 +106,7 @@ export function createEtaStartTool(settings: EtaSettingsStore, onTaskChanged?: E
         const details = buildErrorDetails(error);
         return {
           content: [{ type: 'text', text: `ETA start failed: ${details.message}` }],
+          isError: true,
           details,
         };
       }

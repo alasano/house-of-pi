@@ -73,6 +73,7 @@ export function createEtaUpdateTool(settings: EtaSettingsStore, onTaskChanged?: 
         if (details.kind === 'error') {
           return {
             content: [{ type: 'text', text: `ETA update failed: ${details.message}` }],
+            isError: true,
             details,
           };
         }
@@ -88,6 +89,7 @@ export function createEtaUpdateTool(settings: EtaSettingsStore, onTaskChanged?: 
         const details = buildErrorDetails(error);
         return {
           content: [{ type: 'text', text: `ETA update failed: ${details.message}` }],
+          isError: true,
           details,
         };
       }

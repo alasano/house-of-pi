@@ -107,6 +107,7 @@ export function createEtaFinishTool(settings: EtaSettingsStore, onTaskChanged?: 
         if (details.kind === 'error') {
           return {
             content: [{ type: 'text', text: `ETA finish failed: ${details.message}` }],
+            isError: true,
             details,
           };
         }
@@ -132,6 +133,7 @@ export function createEtaFinishTool(settings: EtaSettingsStore, onTaskChanged?: 
         const details = buildErrorDetails(error);
         return {
           content: [{ type: 'text', text: `ETA finish failed: ${details.message}` }],
+          isError: true,
           details,
         };
       }
