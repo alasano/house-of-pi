@@ -44,9 +44,45 @@ export const EtaCheckParamsSchema = Type.Object(EstimateInputSchema, {
   additionalProperties: false,
 });
 
-export const EtaStartParamsSchema = Type.Object(EstimateInputSchema, {
-  additionalProperties: false,
-});
+const DelegatedTasksSchema = Type.Optional(
+  Type.Array(
+    Type.Object(
+      {
+        taskSummary: Type.String({ minLength: 1, maxLength: 160 }),
+        estimateMinutes: Type.Number({ minimum: 0.001 }),
+      },
+      { additionalProperties: false },
+    ),
+    {
+      maxItems: 16,
+      description:
+        'Raw remaining estimates for delegated tasks, already included in your total ETA. Parallel work uses the longest critical path, not the sum. Pass [] to clear finished subagents on update.',
+    },
+  ),
+);
+
+export const EtaStartParamsSchema = Type.Object(
+  { ...EstimateInputSchema, delegatedTasks: DelegatedTasksSchema },
+  {
+    additionalProperties: false,
+  },
+);
+
+export const EtaUpdateParamsSchema = Type.Object(
+  {
+    estimateMinutes: EstimateInputSchema.estimateMinutes,
+    estimateLowMinutes: EstimateInputSchema.estimateLowMinutes,
+    estimateHighMinutes: EstimateInputSchema.estimateHighMinutes,
+    delegatedTasks: DelegatedTasksSchema,
+    taskId: Type.Optional(
+      Type.String({
+        description:
+          'Omit to update the open ETA task in this session. Other sessions cannot be updated.',
+      }),
+    ),
+  },
+  { additionalProperties: false },
+);
 
 export const EtaFinishParamsSchema = Type.Object(
   {

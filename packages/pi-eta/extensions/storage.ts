@@ -4,6 +4,7 @@ import { getAgentDir } from '@earendil-works/pi-coding-agent';
 import type {
   CompletedEtaRecord,
   EstimateRange,
+  EtaDelegatedTaskEstimate,
   EtaCheckEvent,
   EtaEvent,
   EtaFinishEvent,
@@ -13,6 +14,7 @@ import type {
   EtaStartEvent,
   EtaState,
   EtaTaskRecord,
+  EtaUpdateEvent,
 } from './types';
 import { ETA_EVENT_VERSION, ETA_OUTCOMES } from './types';
 import { actualWallMinutes, asNumber, asString, isRecord } from './util';
@@ -83,6 +85,25 @@ function parseEstimateRange(raw: unknown): EstimateRange | undefined {
   if (lowMinutes === undefined || highMinutes === undefined) return undefined;
   if (lowMinutes <= 0 || highMinutes <= 0 || lowMinutes > highMinutes) return undefined;
   return { lowMinutes, highMinutes };
+}
+
+function parseDelegatedTasks(raw: unknown): EtaDelegatedTaskEstimate[] | undefined {
+  if (!Array.isArray(raw) || raw.length > 16) return undefined;
+  const tasks: EtaDelegatedTaskEstimate[] = [];
+  for (const entry of raw) {
+    if (!isRecord(entry)) return undefined;
+    const taskSummary = asString(entry.taskSummary);
+    const estimateMinutes = asNumber(entry.estimateMinutes);
+    if (
+      !taskSummary ||
+      taskSummary.length > 160 ||
+      estimateMinutes === undefined ||
+      estimateMinutes <= 0
+    )
+      return undefined;
+    tasks.push({ taskSummary, estimateMinutes });
+  }
+  return tasks;
 }
 
 function parseModel(raw: unknown): EtaModelInfo | undefined {
@@ -175,9 +196,11 @@ export function parseEtaEvent(raw: unknown): EtaEvent | undefined {
       const sessionFile = asString(raw.sessionFile);
       const calibratedRange = parseEstimateRange(raw.calibratedRange);
       const thinkingLevel = asString(raw.thinkingLevel);
+      const delegatedTasks = parseDelegatedTasks(raw.delegatedTasks);
       return {
         ...base,
         type: 'start',
+        ...(delegatedTasks ? { delegatedTasks } : {}),
         taskId,
         taskSummary,
         estimate,
@@ -188,6 +211,34 @@ export function parseEtaEvent(raw: unknown): EtaEvent | undefined {
         sessionId,
         startedAt,
         ...(sessionFile ? { sessionFile } : {}),
+      };
+    }
+
+    case 'update': {
+      const taskId = asString(raw.taskId);
+      const sessionId = asString(raw.sessionId);
+      const estimate = parseEstimateRange(raw.estimate);
+      const updatedAt = asString(raw.updatedAt);
+      if (
+        !taskId ||
+        !sessionId ||
+        !estimate ||
+        !updatedAt ||
+        !Number.isFinite(Date.parse(updatedAt))
+      ) {
+        return undefined;
+      }
+      const calibratedRange = parseEstimateRange(raw.calibratedRange);
+      const delegatedTasks = parseDelegatedTasks(raw.delegatedTasks);
+      return {
+        ...base,
+        type: 'update',
+        taskId,
+        sessionId,
+        estimate,
+        ...(calibratedRange ? { calibratedRange } : {}),
+        updatedAt,
+        ...(delegatedTasks ? { delegatedTasks } : {}),
       };
     }
 
@@ -284,13 +335,25 @@ export function buildEtaState(events: EtaEvent[]): EtaState {
   const { activeEvents, resetCount } = applyResets(events);
   const starts = new Map<string, EtaStartEvent>();
   const finishes = new Map<string, EtaFinishEvent>();
+  const updates = new Map<string, EtaUpdateEvent>();
+  const delegatedTasks = new Map<string, EtaDelegatedTaskEstimate[]>();
   const profileChanges = new Set<string>();
   const checks: EtaCheckEvent[] = [];
 
   for (const event of activeEvents) {
     if (event.type === 'check') checks.push(event);
-    if (event.type === 'start') starts.set(event.taskId, event);
+    if (event.type === 'start') {
+      starts.set(event.taskId, event);
+      if (event.delegatedTasks) delegatedTasks.set(event.taskId, event.delegatedTasks);
+    }
     if (event.type === 'finish') finishes.set(event.taskId, event);
+    if (event.type === 'update') {
+      const start = starts.get(event.taskId);
+      if (start?.sessionId === event.sessionId && !finishes.has(event.taskId)) {
+        updates.set(event.taskId, event);
+        if (event.delegatedTasks) delegatedTasks.set(event.taskId, event.delegatedTasks);
+      }
+    }
     if (event.type === 'profile_change') profileChanges.add(event.taskId);
   }
 
@@ -307,6 +370,10 @@ export function buildEtaState(events: EtaEvent[]): EtaState {
       sessionId: start.sessionId,
       ...(start.sessionFile ? { sessionFile: start.sessionFile } : {}),
       startedAt: start.startedAt,
+      ...(updates.has(start.taskId) ? { latestUpdate: updates.get(start.taskId)! } : {}),
+      ...(delegatedTasks.has(start.taskId)
+        ? { delegatedTasks: delegatedTasks.get(start.taskId)! }
+        : {}),
       ...(finish ? { finish } : {}),
       mixedProfile:
         profileChanges.has(start.taskId) || (finish ? isProfileMismatch(start, finish) : false),

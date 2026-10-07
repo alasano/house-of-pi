@@ -66,6 +66,7 @@ export function createEtaCheckTool(settings: EtaSettingsStore) {
         const details = buildErrorDetails(error);
         return {
           content: [{ type: 'text', text: `ETA check failed: ${details.message}` }],
+          isError: true,
           details,
         };
       }

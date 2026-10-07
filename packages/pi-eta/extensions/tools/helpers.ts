@@ -6,8 +6,9 @@ import type {
   EtaToolDetails,
   EstimateRange,
   EtaState,
+  EtaTaskRecord,
 } from '../types';
-import type { EtaCheckParamsSchema, EtaStartParamsSchema } from '../schemas';
+import type { EtaCheckParamsSchema, EtaStartParamsSchema, EtaUpdateParamsSchema } from '../schemas';
 import { buildCalibrationSnapshot, calibrateRange, sizeAdjustmentFactor } from '../stats';
 import {
   estimateCenterMinutes,
@@ -19,7 +20,10 @@ import {
 
 export type EstimateParams =
   | Static<typeof EtaCheckParamsSchema>
-  | Static<typeof EtaStartParamsSchema>;
+  | Static<typeof EtaStartParamsSchema>
+  | Static<typeof EtaUpdateParamsSchema>;
+
+export type EtaTaskChanged = (ctx: ExtensionContext, record: EtaTaskRecord | undefined) => void;
 
 export function buildErrorDetails(error: unknown): Extract<EtaToolDetails, { kind: 'error' }> {
   return {
@@ -29,7 +33,7 @@ export function buildErrorDetails(error: unknown): Extract<EtaToolDetails, { kin
 }
 
 export function agentHiddenCalibrationMessage(
-  action: 'checked' | 'started' | 'finished',
+  action: 'checked' | 'started' | 'updated' | 'finished',
   taskId?: string,
 ): string {
   const idText = taskId ? ` Task ID: ${taskId}.` : '';

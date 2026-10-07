@@ -424,7 +424,10 @@ async function showEtaOverlay(ctx: ExtensionContext, settings: EtaSettingsStore)
   );
 }
 
-async function resetEta(ctx: ExtensionContext): Promise<void> {
+async function resetEta(
+  ctx: ExtensionContext,
+  onReset?: (ctx: ExtensionContext) => void,
+): Promise<void> {
   if (!ctx.hasUI) {
     ctx.ui.notify('ETA reset requires UI confirmation.', 'warning');
     return;
@@ -448,6 +451,7 @@ async function resetEta(ctx: ExtensionContext): Promise<void> {
   });
 
   ctx.ui.setStatus('pi-eta', undefined);
+  onReset?.(ctx);
   ctx.ui.notify('Pi ETA calibration reset.', 'info');
 }
 
@@ -477,7 +481,11 @@ export function getEtaArgumentCompletions(prefix: string) {
   return filtered.length > 0 ? filtered : null;
 }
 
-export function registerEtaCommand(pi: ExtensionAPI, settings: EtaSettingsStore): void {
+export function registerEtaCommand(
+  pi: ExtensionAPI,
+  settings: EtaSettingsStore,
+  onReset?: (ctx: ExtensionContext) => void,
+): void {
   pi.registerCommand('eta', {
     description: 'Show Pi ETA stats (usage: /eta [stats|verbose [on|off|status]|reset])',
     getArgumentCompletions: getEtaArgumentCompletions,
@@ -510,7 +518,7 @@ export function registerEtaCommand(pi: ExtensionAPI, settings: EtaSettingsStore)
           return;
         }
         case 'reset':
-          await resetEta(ctx);
+          await resetEta(ctx, onReset);
           return;
         default:
           ctx.ui.notify('Usage: /eta [stats|verbose [on|off|status]|reset]', 'warning');

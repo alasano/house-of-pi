@@ -16,6 +16,12 @@ export type EstimateRange = {
   highMinutes: number;
 };
 
+export type EtaDelegatedTaskEstimate = {
+  taskSummary: string;
+  /** Agent's raw remaining estimate; the parent's range already includes this work. */
+  estimateMinutes: number;
+};
+
 export type EtaModelInfo = {
   provider: string;
   id: string;
@@ -58,6 +64,7 @@ export type EtaStartEvent = EtaBaseEvent & {
   sessionId: string;
   sessionFile?: string;
   startedAt: string;
+  delegatedTasks?: EtaDelegatedTaskEstimate[];
 };
 
 export type EtaFinishEvent = EtaBaseEvent & {
@@ -74,6 +81,17 @@ export type EtaFinishEvent = EtaBaseEvent & {
   actualWallMs?: number;
 };
 
+/** A fresh estimate of the work remaining, never a replacement for the training baseline. */
+export type EtaUpdateEvent = EtaBaseEvent & {
+  type: 'update';
+  taskId: string;
+  sessionId: string;
+  estimate: EstimateRange;
+  calibratedRange?: EstimateRange;
+  updatedAt: string;
+  delegatedTasks?: EtaDelegatedTaskEstimate[];
+};
+
 /** Marks that the model or thinking level changed while an ETA task was open. */
 export type EtaProfileChangeEvent = EtaBaseEvent & {
   type: 'profile_change';
@@ -88,6 +106,7 @@ export type EtaResetEvent = EtaBaseEvent & {
 export type EtaEvent =
   | EtaCheckEvent
   | EtaStartEvent
+  | EtaUpdateEvent
   | EtaFinishEvent
   | EtaProfileChangeEvent
   | EtaResetEvent;
@@ -103,6 +122,8 @@ export type EtaTaskRecord = {
   sessionId: string;
   sessionFile?: string;
   startedAt: string;
+  latestUpdate?: EtaUpdateEvent;
+  delegatedTasks?: EtaDelegatedTaskEstimate[];
   finish?: EtaFinishEvent;
   mixedProfile: boolean;
 };
@@ -210,6 +231,15 @@ export type EtaToolDetails =
       project: EtaProjectInfo;
       preview: EtaPreviewDetails;
       startedAt: string;
+      delegatedTasks?: EtaDelegatedTaskEstimate[];
+    }
+  | {
+      kind: 'update';
+      taskId: string;
+      taskSummary: string;
+      preview: EtaPreviewDetails;
+      updatedAt: string;
+      delegatedTasks?: EtaDelegatedTaskEstimate[];
     }
   | {
       kind: 'finish';
