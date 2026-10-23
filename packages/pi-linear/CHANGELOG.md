@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/alasano/house-of-pi/compare/pi-linear-v0.5.0...pi-linear-v0.5.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **pi-linear:** remove duplicate isError field from render context type ([43888d9](https://github.com/alasano/house-of-pi/commit/43888d9fd2cd204a98b42e8f8f2825314cd34ee6))
+
 ## [0.5.0](https://github.com/alasano/house-of-pi/compare/pi-linear-v0.4.1...pi-linear-v0.5.0) (2026-08-08)
 
 
